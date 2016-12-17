@@ -1,0 +1,6 @@
+[package]
+name = "shaderc"
+version = "0.1.0"
+authors = ["Lei Zhang <antiagainst@gmail.com>"]
+
+[dependencies]
