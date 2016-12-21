@@ -51,6 +51,8 @@ extern "C" {
                                                         name_length: size_t,
                                                         value: *const c_char,
                                                         vaule_length: size_t);
+    pub fn shaderc_compile_options_set_source_language(options: *mut ShadercCompileOptions,
+                                                       language: int32_t);
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_length(result: *const ShadercCompilationResult) -> size_t;

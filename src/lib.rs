@@ -56,6 +56,13 @@ use std::ffi::{CStr, CString};
 
 mod ffi;
 
+/// Source language.
+#[repr(C)]
+pub enum SourceLanguage {
+    GLSL,
+    HLSL,
+}
+
 /// Shader kind.
 ///
 /// * The `Glsl<stage>` enumerants are forced shader kinds, which force the
@@ -248,6 +255,13 @@ impl CompileOptions {
             }
         }
     }
+
+    /// Sets the source language.
+    ///
+    /// The default is GLSL.
+    pub fn set_source_language(&mut self, language: SourceLanguage) {
+        unsafe { ffi::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -328,6 +342,8 @@ mod tests {
     static EXTRA_E: &'static str = "#version 310 es\n E\n void main() {}";
     static IFDEF_E: &'static str = "#version 310 es\n #ifdef E\n void main() {}\n\
                                     #else\n #error\n #endif";
+    static HLSL_VERTEX: &'static str = "float4 main(uint index: SV_VERTEXID): SV_POSITION\n\
+                                        { return float4(1., 2., 3., 4.); }";
 
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
@@ -429,5 +445,21 @@ mod tests {
                                                    "main",
                                                    &o);
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
+    }
+
+    #[test]
+    fn compile_options_set_source_language() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_source_language(SourceLanguage::HLSL);
+        let result = c.compile_into_spirv(HLSL_VERTEX,
+                                          ShaderKind::GlslVertex,
+                                          "shader.hlsl",
+                                          "main",
+                                          &options);
+        assert!(result.len() > 20);
+        assert!(result.as_binary().first() == Some(&0x07230203));
+        let function_end_word: u32 = (1 << 16) | 56;
+        assert!(result.as_binary().last() == Some(&function_end_word));
     }
 }
