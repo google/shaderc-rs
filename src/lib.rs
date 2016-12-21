@@ -24,7 +24,7 @@ mod ffi;
 ///
 /// * The `Glsl<stage>` enumerants are forced shader kinds, which force the
 ///   compiler to compile the source code as the specified kind of shader,
-///   regardless of `#pragma` annotations in the source code.
+///   regardless of `#pragma` directives in the source code.
 /// * The `GlslDefault<stage>` enumerants are default shader kinds, which
 ///   allow the compiler to fall back to compile the source code as the
 ///   specified kind of shader when `#pragma` is not found in the source
@@ -38,10 +38,10 @@ pub enum ShaderKind {
     GlslTessControl,
     GlslTessEvaluation,
 
-    /// Deduce the shader kind from `#pragma` annotation in the source code.
+    /// Deduce the shader kind from `#pragma` directives in the source code.
     ///
     /// Compiler will emit error if `#pragma` annotation is not found.
-    GlslInferFromSource,
+    InferFromSource,
 
     GlslDefaultVertex,
     GlslDefaultFragment,
@@ -59,10 +59,39 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new() -> Compiler {
-        Compiler { raw: unsafe { ffi::shaderc_compiler_initialize() } }
+    /// Returns an compiler object that can be used to compile SPIR-V modules.
+    ///
+    /// A return of `None` indicates that there was an error initializing
+    /// the underlying compiler.
+    pub fn new() -> Option<Compiler> {
+        let p = unsafe { ffi::shaderc_compiler_initialize() };
+        if p.is_null() {
+            None
+        } else {
+            Some(Compiler { raw: p })
+        }
     }
 
+    /// Compiles the given source string `source_text` to a SPIR-V module
+    /// according to the given `additional_options`.
+    ///
+    /// The source string will be compiled into a SPIR-V binary module
+    /// contained in a `CompilationResult` object.
+    ///
+    /// The source string is treated as the given shader kind `shader_kind`.
+    /// If `InferFromSource` is given, the compiler will try to deduce the
+    /// shader kind from the source string via `#pragma` directives and a
+    /// failure in deducing will generate an error. If the shader kind is
+    /// set to one of the default shader kinds, the compiler will fall back
+    /// to the default shader kind in case it failed to deduce the shader
+    /// kind from the source string.
+    ///
+    /// `input_file_name` is a string used as a tag to identify the source
+    /// string in cases like emitting error messages. It doesn't have to be
+    /// a canonical "file name".
+    ///
+    /// `entry_point_name` is a string defines the name of the entry point
+    /// to associate with the source string.
     pub fn compile_into_spirv(&mut self,
                               source_text: String,
                               shader_kind: ShaderKind,
@@ -88,6 +117,8 @@ impl Compiler {
         CompilationResult::new(result, true)
     }
 
+    /// Like `compile_into_spirv` but the result contains SPIR-V assembly text
+    /// instead of binary module.
     pub fn compile_into_spirv_assembly(&mut self,
                                        source_text: String,
                                        shader_kind: ShaderKind,
@@ -126,12 +157,30 @@ pub struct CompileOptions {
 }
 
 impl CompileOptions {
-    fn new() -> CompileOptions {
-        CompileOptions { raw: unsafe { ffi::shaderc_compile_options_initialize() } }
+    /// Returns a default-initialized compilation options object.
+    ///
+    /// A return of `None` indicates that there was an error initializing
+    /// the underlying options object.
+    pub fn new() -> Option<CompileOptions> {
+        let p = unsafe { ffi::shaderc_compile_options_initialize() };
+        if p.is_null() {
+            None
+        } else {
+            Some(CompileOptions { raw: p })
+        }
     }
 
-    fn clone(&self) -> CompileOptions {
-        CompileOptions { raw: unsafe { ffi::shaderc_compile_options_clone(self.raw) } }
+    /// Returns a copy of the given compilation options object.
+    ///
+    /// A return of `None` indicates that there was an error copying
+    /// the underlying options object.
+    pub fn clone(&self) -> Option<CompileOptions> {
+        let p = unsafe { ffi::shaderc_compile_options_clone(self.raw) };
+        if p.is_null() {
+            None
+        } else {
+            Some(CompileOptions { raw: p })
+        }
     }
 }
 
@@ -155,13 +204,23 @@ impl CompilationResult {
         }
     }
 
+    /// Returns the number of bytes of the compilation output data.
     pub fn len(&self) -> usize {
         unsafe { ffi::shaderc_result_get_length(self.raw) }
     }
 
+    /// Returns the compilation output data as a binary slice.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the compilation does not generate a
+    /// binary output.
     pub fn as_binary(&self) -> &[u32] {
-        assert!(self.is_binary);
+        if !self.is_binary {
+            panic!("not binary result")
+        }
 
+        assert_eq!(0, self.len() % 4);
         let num_words = self.len() / 4;
 
         unsafe {
@@ -170,8 +229,16 @@ impl CompilationResult {
         }
     }
 
+    /// Returns the compilation output data as a text string.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the compilation does not generate a
+    /// text output.
     pub fn as_text(&self) -> String {
-        assert!(!self.is_binary);
+        if self.is_binary {
+            panic!("not text result")
+        }
         unsafe {
             let p = ffi::shaderc_result_get_bytes(self.raw);
             let bytes = CStr::from_ptr(p).to_bytes();
@@ -219,8 +286,8 @@ mod tests {
         let file = "shader.glsl".to_string();
         let entry_point = "main".to_string();
 
-        let mut c = Compiler::new();
-        let options = CompileOptions::new();
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(source,
                                           ShaderKind::GlslVertex,
                                           file,
@@ -238,8 +305,8 @@ mod tests {
         let file = "shader.glsl".to_string();
         let entry_point = "main".to_string();
 
-        let mut c = Compiler::new();
-        let options = CompileOptions::new();
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv_assembly(source,
                                                    ShaderKind::GlslVertex,
                                                    file,
