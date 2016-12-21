@@ -12,6 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Rust binding for the shaderc library.
+//!
+//! The [shaderc](https://github.com/google/shaderc) library provides an API
+//! for compiling GLSL/HLSL source code to SPIRV modules. It has been shipping
+//! in the Android NDK since version r12b.
+//!
+//! The `shaderc_combined` library (`libshaderc_combined.a`) is required for
+//! proper linking. You can compile it by checking out the shaderc project and
+//! follow the instructions there. Then place `libshaderc_combined.a` at a path
+//! that is scanned by the linker (e.g., the `deps` directory within the
+//! `target` directory).
+//!
+//! # Examples
+//!
+//! Compile a shader into SPIR-V binary module and assembly text:
+//!
+//! ```
+//! use shaderc;
+//!
+//! let source = "#version 310 es\n void main() {}";
+//!
+//! let mut compiler = shaderc::Compiler::new().unwrap();
+//! let options = shaderc::CompileOptions::new().unwrap();
+//! let binary_result = compiler.compile_into_spirv(
+//!     source, shaderc::ShaderKind::GlslVertex,
+//!     "shader.glsl", "main", &options);
+//!
+//! assert_eq!(Some(&0x07230203), binary_result.as_binary().first());
+//!
+//! let text_result = compiler.compile_into_spirv_assembly(
+//!     source, shaderc::ShaderKind::GlslVertex,
+//!     "shader.glsl", "main", &options);
+//!
+//! assert!(text_result.as_text().starts_with("; SPIR-V\n"));
+//! ```
+
 extern crate libc;
 
 use libc::{int32_t, uint32_t};
@@ -93,10 +129,10 @@ impl Compiler {
     /// `entry_point_name` is a string defines the name of the entry point
     /// to associate with the source string.
     pub fn compile_into_spirv(&mut self,
-                              source_text: String,
+                              source_text: &str,
                               shader_kind: ShaderKind,
-                              input_file_name: String,
-                              entry_point_name: String,
+                              input_file_name: &str,
+                              entry_point_name: &str,
                               additional_options: &CompileOptions)
                               -> CompilationResult {
         let source_size = source_text.len();
@@ -120,10 +156,10 @@ impl Compiler {
     /// Like `compile_into_spirv` but the result contains SPIR-V assembly text
     /// instead of binary module.
     pub fn compile_into_spirv_assembly(&mut self,
-                                       source_text: String,
+                                       source_text: &str,
                                        shader_kind: ShaderKind,
-                                       input_file_name: String,
-                                       entry_point_name: String,
+                                       input_file_name: &str,
+                                       entry_point_name: &str,
                                        additional_options: &CompileOptions)
                                        -> CompilationResult {
         let source_size = source_text.len();
@@ -257,7 +293,7 @@ impl Drop for CompilationResult {
 mod tests {
     use super::*;
 
-    static VOID_MAIN: &'static str = "#version 310 es\nvoid main() {}";
+    static VOID_MAIN: &'static str = "#version 310 es\n void main() {}";
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
 ; Version: 1.0
@@ -282,16 +318,12 @@ mod tests {
 
     #[test]
     fn compile_vertex_shader_into_spirv() {
-        let source = VOID_MAIN.to_string();
-        let file = "shader.glsl".to_string();
-        let entry_point = "main".to_string();
-
         let mut c = Compiler::new().unwrap();
         let options = CompileOptions::new().unwrap();
-        let result = c.compile_into_spirv(source,
+        let result = c.compile_into_spirv(VOID_MAIN,
                                           ShaderKind::GlslVertex,
-                                          file,
-                                          entry_point,
+                                          "shader.glsl",
+                                          "main",
                                           &options);
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
@@ -301,16 +333,12 @@ mod tests {
 
     #[test]
     fn compile_vertex_shader_into_spirv_assembly() {
-        let source = VOID_MAIN.to_string();
-        let file = "shader.glsl".to_string();
-        let entry_point = "main".to_string();
-
         let mut c = Compiler::new().unwrap();
         let options = CompileOptions::new().unwrap();
-        let result = c.compile_into_spirv_assembly(source,
+        let result = c.compile_into_spirv_assembly(VOID_MAIN,
                                                    ShaderKind::GlslVertex,
-                                                   file,
-                                                   entry_point,
+                                                   "shader.glsl",
+                                                   "main",
                                                    &options);
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
