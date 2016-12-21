@@ -20,6 +20,15 @@ use std::ffi::{CStr, CString};
 
 mod ffi;
 
+/// Shader kind.
+///
+/// * The `Glsl<stage>` enumerants are forced shader kinds, which force the
+///   compiler to compile the source code as the specified kind of shader,
+///   regardless of `#pragma` annotations in the source code.
+/// * The `GlslDefault<stage>` enumerants are default shader kinds, which
+///   allow the compiler to fall back to compile the source code as the
+///   specified kind of shader when `#pragma` is not found in the source
+///   code.
 #[repr(C)]
 pub enum ShaderKind {
     GlslVertex,
@@ -29,6 +38,9 @@ pub enum ShaderKind {
     GlslTessControl,
     GlslTessEvaluation,
 
+    /// Deduce the shader kind from `#pragma` annotation in the source code.
+    ///
+    /// Compiler will emit error if `#pragma` annotation is not found.
     GlslInferFromSource,
 
     GlslDefaultVertex,
@@ -41,6 +53,7 @@ pub enum ShaderKind {
     SpirvAssembly,
 }
 
+/// An opaque object managing all compiler states.
 pub struct Compiler {
     raw: *mut ffi::ShadercCompiler,
 }
@@ -107,6 +120,7 @@ impl Drop for Compiler {
     }
 }
 
+/// An opaque object managing options to compilation.
 pub struct CompileOptions {
     raw: *mut ffi::ShadercCompileOptions,
 }
@@ -127,6 +141,7 @@ impl Drop for CompileOptions {
     }
 }
 
+/// An opaque object containing the results of compilation.
 pub struct CompilationResult {
     raw: *mut ffi::ShadercCompilationResult,
     is_binary: bool,
