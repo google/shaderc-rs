@@ -51,7 +51,7 @@
 extern crate libc;
 
 use libc::{int32_t, uint32_t};
-use std::{slice, str};
+use std::{ptr, slice, str};
 use std::ffi::{CStr, CString};
 
 mod ffi;
@@ -218,6 +218,36 @@ impl CompileOptions {
             Some(CompileOptions { raw: p })
         }
     }
+
+    /// Adds a predefined macro to the compilation options.
+    ///
+    /// This has the same effect as passing `-Dname=value` to the command-line
+    /// compiler.  If `value` is `None`, it has the same effect as passing
+    /// `-Dname` to the command-line compiler. If a macro definition with the
+    /// same name has previously been added, the value is replaced with the
+    /// new value.
+    pub fn add_macro_definition(&mut self, name: &str, value: Option<&str>) {
+        let c_name = CString::new(name).expect("cannot convert name to c string");
+        if value.is_some() {
+            let value = value.unwrap();
+            let c_value = CString::new(value).expect("cannot convert value to c string");
+            unsafe {
+                ffi::shaderc_compile_options_add_macro_definition(self.raw,
+                                                                  c_name.as_ptr(),
+                                                                  name.len(),
+                                                                  c_value.as_ptr(),
+                                                                  value.len())
+            }
+        } else {
+            unsafe {
+                ffi::shaderc_compile_options_add_macro_definition(self.raw,
+                                                                  c_name.as_ptr(),
+                                                                  name.len(),
+                                                                  ptr::null(),
+                                                                  0)
+            }
+        }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -294,6 +324,11 @@ mod tests {
     use super::*;
 
     static VOID_MAIN: &'static str = "#version 310 es\n void main() {}";
+    static VOID_E: &'static str = "#version 310 es\n void E() {}";
+    static EXTRA_E: &'static str = "#version 310 es\n E\n void main() {}";
+    static IFDEF_E: &'static str = "#version 310 es\n #ifdef E\n void main() {}\n\
+                                    #else\n #error\n #endif";
+
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
 ; Version: 1.0
@@ -340,6 +375,59 @@ mod tests {
                                                    "shader.glsl",
                                                    "main",
                                                    &options);
+        assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
+    }
+
+    #[test]
+    fn compile_options_add_macro_definition_normal_value() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.add_macro_definition("E", Some("main"));
+        let result = c.compile_into_spirv_assembly(VOID_E,
+                                                   ShaderKind::GlslVertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &options);
+        assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
+    }
+
+    #[test]
+    fn compile_options_add_macro_definition_empty_value() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.add_macro_definition("E", Some(""));
+        let result = c.compile_into_spirv_assembly(EXTRA_E,
+                                                   ShaderKind::GlslVertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &options);
+        assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
+    }
+
+    #[test]
+    fn compile_options_add_macro_definition_no_value() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.add_macro_definition("E", None);
+        let result = c.compile_into_spirv_assembly(IFDEF_E,
+                                                   ShaderKind::GlslVertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &options);
+        assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
+    }
+
+    #[test]
+    fn compile_options_clone() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.add_macro_definition("E", None);
+        let o = options.clone().unwrap();
+        let result = c.compile_into_spirv_assembly(IFDEF_E,
+                                                   ShaderKind::GlslVertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &o);
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 }

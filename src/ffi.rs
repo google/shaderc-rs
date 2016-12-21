@@ -46,6 +46,12 @@ extern "C" {
                                          -> *mut ShadercCompileOptions;
     pub fn shaderc_compile_options_release(options: *mut ShadercCompileOptions);
 
+    pub fn shaderc_compile_options_add_macro_definition(options: *mut ShadercCompileOptions,
+                                                        name: *const c_char,
+                                                        name_length: size_t,
+                                                        value: *const c_char,
+                                                        vaule_length: size_t);
+
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_length(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_bytes(result: *const ShadercCompilationResult) -> *const c_char;
