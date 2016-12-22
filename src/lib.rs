@@ -413,6 +413,20 @@ impl CompilationResult {
             str::from_utf8(bytes).ok().expect("invalid utf-8 string").to_string()
         }
     }
+
+    /// Returns the number of warnings generated during the compilation.
+    pub fn get_num_warnings(&self) -> u32 {
+        (unsafe { ffi::shaderc_result_get_num_warnings(self.raw) }) as u32
+    }
+
+    /// Returns the detailed warnings as a string.
+    pub fn get_warning_messages(&self) -> String {
+        unsafe {
+            let p = ffi::shaderc_result_get_error_message(self.raw);
+            let bytes = CStr::from_ptr(p).to_bytes();
+            str::from_utf8(bytes).ok().expect("invalid utf-8 string").to_string()
+        }
+    }
 }
 
 impl Drop for CompilationResult {
@@ -435,6 +449,11 @@ mod tests {
     static TWO_ERROR: &'static str = "#version 310 es\n #error one\n #error two\n void main() {}";
     static TWO_ERROR_MSG: &'static str = "shader.glsl:2: error: '#error' : one\n\
                                           shader.glsl:3: error: '#error' : two\n";
+    static TWO_WARNING: &'static str = "#version 140\n\
+                                        attribute float x;\n attribute float y;\n void main() {}";
+    static TWO_WARNING_MSG: &'static str = "\
+shader.glsl:2: warning: attribute deprecated in version 130; may be removed in future release\n\
+shader.glsl:3: warning: attribute deprecated in version 130; may be removed in future release\n";
 
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
@@ -584,5 +603,19 @@ mod tests {
                                           "main",
                                           &options);
         assert_eq!(Err(Error::InvalidStage("".to_string())), result);
+    }
+
+    #[test]
+    fn test_warning() {
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
+        let result = c.compile_into_spirv(TWO_WARNING,
+                                          ShaderKind::Vertex,
+                                          "shader.glsl",
+                                          "main",
+                                          &options)
+                      .unwrap();
+        assert_eq!(2, result.get_num_warnings());
+        assert_eq!(TWO_WARNING_MSG.to_string(), result.get_warning_messages());
     }
 }
