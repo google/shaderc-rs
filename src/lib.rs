@@ -36,13 +36,13 @@
 //! let mut compiler = shaderc::Compiler::new().unwrap();
 //! let options = shaderc::CompileOptions::new().unwrap();
 //! let binary_result = compiler.compile_into_spirv(
-//!     source, shaderc::ShaderKind::GlslVertex,
+//!     source, shaderc::ShaderKind::Vertex,
 //!     "shader.glsl", "main", &options);
 //!
 //! assert_eq!(Some(&0x07230203), binary_result.as_binary().first());
 //!
 //! let text_result = compiler.compile_into_spirv_assembly(
-//!     source, shaderc::ShaderKind::GlslVertex,
+//!     source, shaderc::ShaderKind::Vertex,
 //!     "shader.glsl", "main", &options);
 //!
 //! assert!(text_result.as_text().starts_with("; SPIR-V\n"));
@@ -65,33 +65,33 @@ pub enum SourceLanguage {
 
 /// Shader kind.
 ///
-/// * The `Glsl<stage>` enumerants are forced shader kinds, which force the
+/// * The `<stage>` enumerants are forced shader kinds, which force the
 ///   compiler to compile the source code as the specified kind of shader,
 ///   regardless of `#pragma` directives in the source code.
-/// * The `GlslDefault<stage>` enumerants are default shader kinds, which
+/// * The `Default<stage>` enumerants are default shader kinds, which
 ///   allow the compiler to fall back to compile the source code as the
 ///   specified kind of shader when `#pragma` is not found in the source
 ///   code.
 #[repr(C)]
 pub enum ShaderKind {
-    GlslVertex,
-    GlslFragment,
-    GlslCompute,
-    GlslGeometry,
-    GlslTessControl,
-    GlslTessEvaluation,
+    Vertex,
+    Fragment,
+    Compute,
+    Geometry,
+    TessControl,
+    TessEvaluation,
 
     /// Deduce the shader kind from `#pragma` directives in the source code.
     ///
     /// Compiler will emit error if `#pragma` annotation is not found.
     InferFromSource,
 
-    GlslDefaultVertex,
-    GlslDefaultFragment,
-    GlslDefaultCompute,
-    GlslDefaultGeometry,
-    GlslDefaultTessControl,
-    GlslDefaultTessEvaluation,
+    DefaultVertex,
+    DefaultFragment,
+    DefaultCompute,
+    DefaultGeometry,
+    DefaultTessControl,
+    DefaultTessEvaluation,
 
     SpirvAssembly,
 }
@@ -372,7 +372,7 @@ mod tests {
         let mut c = Compiler::new().unwrap();
         let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(VOID_MAIN,
-                                          ShaderKind::GlslVertex,
+                                          ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
                                           &options);
@@ -387,7 +387,7 @@ mod tests {
         let mut c = Compiler::new().unwrap();
         let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv_assembly(VOID_MAIN,
-                                                   ShaderKind::GlslVertex,
+                                                   ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
                                                    &options);
@@ -400,7 +400,7 @@ mod tests {
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
         let result = c.compile_into_spirv_assembly(VOID_E,
-                                                   ShaderKind::GlslVertex,
+                                                   ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
                                                    &options);
@@ -413,7 +413,7 @@ mod tests {
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some(""));
         let result = c.compile_into_spirv_assembly(EXTRA_E,
-                                                   ShaderKind::GlslVertex,
+                                                   ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
                                                    &options);
@@ -426,7 +426,7 @@ mod tests {
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
         let result = c.compile_into_spirv_assembly(IFDEF_E,
-                                                   ShaderKind::GlslVertex,
+                                                   ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
                                                    &options);
@@ -440,7 +440,7 @@ mod tests {
         options.add_macro_definition("E", None);
         let o = options.clone().unwrap();
         let result = c.compile_into_spirv_assembly(IFDEF_E,
-                                                   ShaderKind::GlslVertex,
+                                                   ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
                                                    &o);
@@ -453,7 +453,7 @@ mod tests {
         let mut options = CompileOptions::new().unwrap();
         options.set_source_language(SourceLanguage::HLSL);
         let result = c.compile_into_spirv(HLSL_VERTEX,
-                                          ShaderKind::GlslVertex,
+                                          ShaderKind::Vertex,
                                           "shader.hlsl",
                                           "main",
                                           &options);
