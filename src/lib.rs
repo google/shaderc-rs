@@ -62,7 +62,10 @@ mod ffi;
 /// the error. The string can be empty in cases.
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    CompilationError(String),
+    /// Compilation error.
+    ///
+    /// Contains the number of errors and detailed error string.
+    CompilationError(u32, String),
     InternalError(String),
     InvalidStage(String),
     InvalidAssembly(String),
@@ -72,11 +75,11 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::CompilationError(ref r) => {
+            Error::CompilationError(c, ref r) => {
                 if r.is_empty() {
-                    write!(f, "compilation error")
+                    write!(f, "{} compilation error(s)", c)
                 } else {
-                    write!(f, "compilation error: {}", r)
+                    write!(f, "{} compilation error(s): {}", c, r)
                 }
             }
             Error::InternalError(ref r) => {
@@ -182,6 +185,7 @@ impl Compiler {
         if status == 0 {
             Ok(CompilationResult::new(result, is_binary))
         } else {
+            let num_errors = unsafe { ffi::shaderc_result_get_num_errors(result) } as u32;
             let reason = unsafe {
                 let p = ffi::shaderc_result_get_error_message(result);
                 let bytes = CStr::from_ptr(p).to_bytes();
@@ -189,7 +193,7 @@ impl Compiler {
             };
             match status {
                 1 => Err(Error::InvalidStage(reason)),
-                2 => Err(Error::CompilationError(reason)),
+                2 => Err(Error::CompilationError(num_errors, reason)),
                 3 => Err(Error::InternalError(reason)),
                 4 => Err(Error::NullResultObject(reason)),
                 5 => Err(Error::InvalidAssembly(reason)),
@@ -566,7 +570,7 @@ mod tests {
                                           "shader.glsl",
                                           "main",
                                           &options);
-        assert_eq!(Err(Error::CompilationError(TWO_ERROR_MSG.to_string())),
+        assert_eq!(Err(Error::CompilationError(2, TWO_ERROR_MSG.to_string())),
                    result);
     }
 
