@@ -55,6 +55,8 @@ extern "C" {
                                                        language: int32_t);
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
+    pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> int32_t;
+    pub fn shaderc_result_get_error_message(result: *const ShadercCompilationResult) -> *const c_char;
     pub fn shaderc_result_get_length(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_bytes(result: *const ShadercCompilationResult) -> *const c_char;
 }

@@ -37,13 +37,13 @@
 //! let options = shaderc::CompileOptions::new().unwrap();
 //! let binary_result = compiler.compile_into_spirv(
 //!     source, shaderc::ShaderKind::Vertex,
-//!     "shader.glsl", "main", &options);
+//!     "shader.glsl", "main", &options).unwrap();
 //!
 //! assert_eq!(Some(&0x07230203), binary_result.as_binary().first());
 //!
 //! let text_result = compiler.compile_into_spirv_assembly(
 //!     source, shaderc::ShaderKind::Vertex,
-//!     "shader.glsl", "main", &options);
+//!     "shader.glsl", "main", &options).unwrap();
 //!
 //! assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 //! ```
@@ -51,10 +51,68 @@
 extern crate libc;
 
 use libc::{int32_t, uint32_t};
-use std::{ptr, slice, str};
+use std::{fmt, ptr, result, slice, str};
 use std::ffi::{CStr, CString};
 
 mod ffi;
+
+/// Error.
+///
+/// Each enumerants has an affixed string describing detailed reasons for
+/// the error. The string can be empty in cases.
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    CompilationError(String),
+    InternalError(String),
+    InvalidStage(String),
+    InvalidAssembly(String),
+    NullResultObject(String),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::CompilationError(ref r) => {
+                if r.is_empty() {
+                    write!(f, "compilation error")
+                } else {
+                    write!(f, "compilation error: {}", r)
+                }
+            }
+            Error::InternalError(ref r) => {
+                if r.is_empty() {
+                    write!(f, "internal error")
+                } else {
+                    write!(f, "internal error: {}", r)
+                }
+            }
+            Error::InvalidStage(ref r) => {
+                if r.is_empty() {
+                    write!(f, "invalid stage")
+                } else {
+                    write!(f, "invalid stage: {}", r)
+                }
+            }
+            Error::InvalidAssembly(ref r) => {
+                if r.is_empty() {
+                    write!(f, "invalid assembly")
+                } else {
+                    write!(f, "invalid assembly: {}", r)
+                }
+            }
+            Error::NullResultObject(ref r) => {
+                if r.is_empty() {
+                    write!(f, "null result object")
+                } else {
+                    write!(f, "null result object: {}", r)
+                }
+            }
+        }
+    }
+}
+
+/// Compilation status.
+pub type Result<T> = result::Result<T, Error>;
 
 /// Source language.
 #[repr(C)]
@@ -115,11 +173,34 @@ impl Compiler {
         }
     }
 
+    fn handle_compilation_result(result: *mut ffi::ShadercCompilationResult,
+                                 is_binary: bool)
+                                 -> Result<CompilationResult> {
+        let status = unsafe { ffi::shaderc_result_get_compilation_status(result) };
+        if status == 0 {
+            Ok(CompilationResult::new(result, is_binary))
+        } else {
+            let reason = unsafe {
+                let p = ffi::shaderc_result_get_error_message(result);
+                let bytes = CStr::from_ptr(p).to_bytes();
+                str::from_utf8(bytes).ok().expect("invalid utf-8 string").to_string()
+            };
+            match status {
+                1 => Err(Error::InvalidStage(reason)),
+                2 => Err(Error::CompilationError(reason)),
+                3 => Err(Error::InternalError(reason)),
+                4 => Err(Error::NullResultObject(reason)),
+                5 => Err(Error::InvalidAssembly(reason)),
+                _ => panic!("unhandled shaderc error case"),
+            }
+        }
+    }
+
     /// Compiles the given source string `source_text` to a SPIR-V module
     /// according to the given `additional_options`.
     ///
     /// The source string will be compiled into a SPIR-V binary module
-    /// contained in a `CompilationResult` object.
+    /// contained in a `CompilationResult` object if no error happens.
     ///
     /// The source string is treated as the given shader kind `shader_kind`.
     /// If `InferFromSource` is given, the compiler will try to deduce the
@@ -141,7 +222,7 @@ impl Compiler {
                               input_file_name: &str,
                               entry_point_name: &str,
                               additional_options: &CompileOptions)
-                              -> CompilationResult {
+                              -> Result<CompilationResult> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
         let c_file = CString::new(input_file_name)
@@ -157,7 +238,7 @@ impl Compiler {
                                           c_entry_point.as_ptr(),
                                           additional_options.raw)
         };
-        CompilationResult::new(result, true)
+        Compiler::handle_compilation_result(result, true)
     }
 
     /// Like `compile_into_spirv` but the result contains SPIR-V assembly text
@@ -168,7 +249,7 @@ impl Compiler {
                                        input_file_name: &str,
                                        entry_point_name: &str,
                                        additional_options: &CompileOptions)
-                                       -> CompilationResult {
+                                       -> Result<CompilationResult> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
         let c_file = CString::new(input_file_name)
@@ -184,7 +265,7 @@ impl Compiler {
                                                    c_entry_point.as_ptr(),
                                                    additional_options.raw)
         };
-        CompilationResult::new(result, false)
+        Compiler::handle_compilation_result(result, false)
     }
 }
 
@@ -375,7 +456,8 @@ mod tests {
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          &options)
+                      .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -390,7 +472,8 @@ mod tests {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options);
+                                                   &options)
+                      .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -403,7 +486,8 @@ mod tests {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options);
+                                                   &options)
+                      .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -416,7 +500,8 @@ mod tests {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options);
+                                                   &options)
+                      .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -429,7 +514,8 @@ mod tests {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options);
+                                                   &options)
+                      .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -443,7 +529,8 @@ mod tests {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &o);
+                                                   &o)
+                      .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -456,7 +543,8 @@ mod tests {
                                           ShaderKind::Vertex,
                                           "shader.hlsl",
                                           "main",
-                                          &options);
+                                          &options)
+                      .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
