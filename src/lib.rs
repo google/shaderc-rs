@@ -116,6 +116,7 @@ pub type Result<T> = result::Result<T, Error>;
 
 /// Source language.
 #[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SourceLanguage {
     GLSL,
     HLSL,
@@ -131,6 +132,7 @@ pub enum SourceLanguage {
 ///   specified kind of shader when `#pragma` is not found in the source
 ///   code.
 #[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ShaderKind {
     Vertex,
     Fragment,
@@ -352,6 +354,7 @@ impl Drop for CompileOptions {
 }
 
 /// An opaque object containing the results of compilation.
+#[derive(Debug, PartialEq, Eq)]
 pub struct CompilationResult {
     raw: *mut ffi::ShadercCompilationResult,
     is_binary: bool,
@@ -425,6 +428,9 @@ mod tests {
                                     #else\n #error\n #endif";
     static HLSL_VERTEX: &'static str = "float4 main(uint index: SV_VERTEXID): SV_POSITION\n\
                                         { return float4(1., 2., 3., 4.); }";
+    static TWO_ERROR: &'static str = "#version 310 es\n #error one\n #error two\n void main() {}";
+    static TWO_ERROR_MSG: &'static str = "shader.glsl:2: error: '#error' : one\n\
+                                          shader.glsl:3: error: '#error' : two\n";
 
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
@@ -449,7 +455,7 @@ mod tests {
 ";
 
     #[test]
-    fn compile_vertex_shader_into_spirv() {
+    fn test_compile_vertex_shader_into_spirv() {
         let mut c = Compiler::new().unwrap();
         let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(VOID_MAIN,
@@ -465,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_vertex_shader_into_spirv_assembly() {
+    fn test_compile_vertex_shader_into_spirv_assembly() {
         let mut c = Compiler::new().unwrap();
         let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv_assembly(VOID_MAIN,
@@ -478,7 +484,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_options_add_macro_definition_normal_value() {
+    fn test_compile_options_add_macro_definition_normal_value() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
@@ -492,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_options_add_macro_definition_empty_value() {
+    fn test_compile_options_add_macro_definition_empty_value() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some(""));
@@ -506,7 +512,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_options_add_macro_definition_no_value() {
+    fn test_compile_options_add_macro_definition_no_value() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
@@ -520,7 +526,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_options_clone() {
+    fn test_compile_options_clone() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
@@ -535,7 +541,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_options_set_source_language() {
+    fn test_compile_options_set_source_language() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_source_language(SourceLanguage::HLSL);
@@ -549,5 +555,30 @@ mod tests {
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
         assert!(result.as_binary().last() == Some(&function_end_word));
+    }
+
+    #[test]
+    fn test_error_compilation_error() {
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
+        let result = c.compile_into_spirv(TWO_ERROR,
+                                          ShaderKind::Vertex,
+                                          "shader.glsl",
+                                          "main",
+                                          &options);
+        assert_eq!(Err(Error::CompilationError(TWO_ERROR_MSG.to_string())),
+                   result);
+    }
+
+    #[test]
+    fn test_error_invalid_stage() {
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
+        let result = c.compile_into_spirv(VOID_MAIN,
+                                          ShaderKind::InferFromSource,
+                                          "shader.glsl",
+                                          "main",
+                                          &options);
+        assert_eq!(Err(Error::InvalidStage("".to_string())), result);
     }
 }
