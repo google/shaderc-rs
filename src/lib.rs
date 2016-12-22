@@ -358,7 +358,6 @@ impl Drop for CompileOptions {
 }
 
 /// An opaque object containing the results of compilation.
-#[derive(Debug, PartialEq, Eq)]
 pub struct CompilationResult {
     raw: *mut ffi::ShadercCompilationResult,
     is_binary: bool,
@@ -589,8 +588,9 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
                                           "shader.glsl",
                                           "main",
                                           &options);
-        assert_eq!(Err(Error::CompilationError(2, TWO_ERROR_MSG.to_string())),
-                   result);
+        assert!(result.is_err());
+        assert_eq!(Some(Error::CompilationError(2, TWO_ERROR_MSG.to_string())),
+                   result.err());
     }
 
     #[test]
@@ -602,7 +602,8 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
                                           "shader.glsl",
                                           "main",
                                           &options);
-        assert_eq!(Err(Error::InvalidStage("".to_string())), result);
+        assert!(result.is_err());
+        assert_eq!(Some(Error::InvalidStage("".to_string())), result.err());
     }
 
     #[test]
