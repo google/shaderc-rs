@@ -401,6 +401,15 @@ impl CompileOptions {
                                                                     profile as int32_t)
         }
     }
+
+    /// Sets the compiler mode to suppress warnings.
+    ///
+    /// This overrides warnings-as-errors mode: when both suppress-warnings and
+    /// warnings-as-errors modes are turned on, warning messages will be
+    /// inhibited, and will not be emitted as error messages.
+    pub fn set_suppress_warnings(&mut self) {
+        unsafe { ffi::shaderc_compile_options_set_suppress_warnings(self.raw) }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -709,6 +718,20 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
                             if s.contains("error: 'gl_ClipDistance' : undeclared identifier"));
+    }
+
+    #[test]
+    fn test_compile_options_set_suppress_warnings() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_suppress_warnings();
+        let result = c.compile_into_spirv(TWO_WARNING,
+                                          ShaderKind::Vertex,
+                                          "shader.glsl",
+                                          "main",
+                                          &options)
+                      .unwrap();
+        assert_eq!(0, result.get_num_warnings());
     }
 
     #[test]
