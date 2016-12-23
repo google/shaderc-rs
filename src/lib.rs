@@ -196,6 +196,95 @@ pub enum OptimizationLevel {
     Size,
 }
 
+/// Resource limit.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Limit {
+    MaxLights,
+    MaxClipPlanes,
+    MaxTextureUnits,
+    MaxTextureCoords,
+    MaxVertexAttribs,
+    MaxVertexUniformComponents,
+    MaxVaryingFloats,
+    MaxVertexTextureImageUnits,
+    MaxCombinedTextureImageUnits,
+    MaxTextureImageUnits,
+    MaxFragmentUniformComponents,
+    MaxDrawBuffers,
+    MaxVertexUniformVectors,
+    MaxVaryingVectors,
+    MaxFragmentUniformVectors,
+    MaxVertexOutputVectors,
+    MaxFragmentInputVectors,
+    MinProgramTexelOffset,
+    MaxProgramTexelOffset,
+    MaxClipDistances,
+    MaxComputeWorkGroupCountX,
+    MaxComputeWorkGroupCountY,
+    MaxComputeWorkGroupCountZ,
+    MaxComputeWorkGroupSizeX,
+    MaxComputeWorkGroupSizeY,
+    MaxComputeWorkGroupSizeZ,
+    MaxComputeUniformComponents,
+    MaxComputeTextureImageUnits,
+    MaxComputeImageUniforms,
+    MaxComputeAtomicCounters,
+    MaxComputeAtomicCounterBuffers,
+    MaxVaryingComponents,
+    MaxVertexOutputComponents,
+    MaxGeometryInputComponents,
+    MaxGeometryOutputComponents,
+    MaxFragmentInputComponents,
+    MaxImageUnits,
+    MaxCombinedImageUnitsAndFragmentOutputs,
+    MaxCombinedShaderOutputResources,
+    MaxImageSamples,
+    MaxVertexImageUniforms,
+    MaxTessControlImageUniforms,
+    MaxTessEvaluationImageUniforms,
+    MaxGeometryImageUniforms,
+    MaxFragmentImageUniforms,
+    MaxCombinedImageUniforms,
+    MaxGeometryTextureImageUnits,
+    MaxGeometryOutputVertices,
+    MaxGeometryTotalOutputComponents,
+    MaxGeometryUniformComponents,
+    MaxGeometryVaryingComponents,
+    MaxTessControlInputComponents,
+    MaxTessControlOutputComponents,
+    MaxTessControlTextureImageUnits,
+    MaxTessControlUniformComponents,
+    MaxTessControlTotalOutputComponents,
+    MaxTessEvaluationInputComponents,
+    MaxTessEvaluationOutputComponents,
+    MaxTessEvaluationTextureImageUnits,
+    MaxTessEvaluationUniformComponents,
+    MaxTessPatchComponents,
+    MaxPatchVertices,
+    MaxTessGenLevel,
+    MaxViewports,
+    MaxVertexAtomicCounters,
+    MaxTessControlAtomicCounters,
+    MaxTessEvaluationAtomicCounters,
+    MaxGeometryAtomicCounters,
+    MaxFragmentAtomicCounters,
+    MaxCombinedAtomicCounters,
+    MaxAtomicCounterBindings,
+    MaxVertexAtomicCounterBuffers,
+    MaxTessControlAtomicCounterBuffers,
+    MaxTessEvaluationAtomicCounterBuffers,
+    MaxGeometryAtomicCounterBuffers,
+    MaxFragmentAtomicCounterBuffers,
+    MaxCombinedAtomicCounterBuffers,
+    MaxAtomicCounterBufferSize,
+    MaxTransformFeedbackBuffers,
+    MaxTransformFeedbackInterleavedComponents,
+    MaxCullDistances,
+    MaxCombinedClipAndCullDistances,
+    MaxSamples,
+}
+
 /// An opaque object managing all compiler states.
 pub struct Compiler {
     raw: *mut ffi::ShadercCompiler,
@@ -444,6 +533,13 @@ impl CompileOptions {
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
         unsafe { ffi::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
     }
+
+    /// Sets the resource `limit` to the given `value`.
+    pub fn set_limit(&mut self, limit: Limit, value: i32) {
+        unsafe {
+            ffi::shaderc_compile_options_set_limit(self.raw, limit as int32_t, value as c_int)
+        }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -552,6 +648,7 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
     static DEBUG_INFO: &'static str = "#version 140\n \
                                        void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
     static CORE_PROFILE: &'static str = "void main() {\n gl_ClipDistance[0] = 5.;\n }";
+
     /// A shader that compiles under OpenGL compatibility but not core profile rules.
     static COMPAT_FRAG: &'static str = "\
 #version 100
@@ -840,6 +937,56 @@ void main() {
                         Some(Error::CompilationError(3, ref s))
                             if s.contains("error: #version: ES shaders for OpenGL SPIR-V \
                                            are not supported"));
+    }
+
+    /// Returns a fragment shader accessing a texture with the given offset.
+    macro_rules! texture_offset {
+        ($offset:expr) => ({
+            let mut s = "#version 150
+                         uniform sampler1D tex;
+                         void main() {
+                            vec4 x = textureOffset(tex, 1., ".to_string();
+            s.push_str(stringify!($offset));
+            s.push_str(");\n}");
+            s
+        })
+    }
+
+    #[test]
+    fn test_compile_options_set_limit() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        assert!(c.compile_into_spirv(&texture_offset!(7),
+                                     ShaderKind::Fragment,
+                                     "shader.glsl",
+                                     "main",
+                                     &options)
+                 .is_ok());
+        assert!(c.compile_into_spirv(&texture_offset!(8),
+                                     ShaderKind::Fragment,
+                                     "shader.glsl",
+                                     "main",
+                                     &options)
+                 .is_err());
+        options.set_limit(Limit::MaxProgramTexelOffset, 10);
+        assert!(c.compile_into_spirv(&texture_offset!(8),
+                                     ShaderKind::Fragment,
+                                     "shader.glsl",
+                                     "main",
+                                     &options)
+                 .is_ok());
+        assert!(c.compile_into_spirv(&texture_offset!(10),
+                                     ShaderKind::Fragment,
+                                     "shader.glsl",
+                                     "main",
+                                     &options)
+                 .is_ok());
+        assert!(c.compile_into_spirv(&texture_offset!(11),
+                                     ShaderKind::Fragment,
+                                     "shader.glsl",
+                                     "main",
+                                     &options)
+                 .is_err());
     }
 
     #[test]

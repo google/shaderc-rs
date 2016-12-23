@@ -64,6 +64,9 @@ extern "C" {
     pub fn shaderc_compile_options_set_target_env(options: *mut ShadercCompileOptions,
                                                   env: int32_t,
                                                   version: uint32_t);
+    pub fn shaderc_compile_options_set_limit(options: *mut ShadercCompileOptions,
+                                             limit: int32_t,
+                                             value: c_int);
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> int32_t;
