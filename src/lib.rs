@@ -50,7 +50,11 @@
 
 extern crate libc;
 
-use libc::{int32_t, uint32_t};
+#[cfg(test)]
+#[macro_use]
+extern crate assert_matches;
+
+use libc::{c_int, int32_t, uint32_t};
 use std::{fmt, ptr, result, slice, str};
 use std::ffi::{CStr, CString};
 
@@ -159,7 +163,20 @@ pub enum ShaderKind {
     SpirvAssembly,
 }
 
+/// GLSL profile.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GlslProfile {
+    /// Used iff GLSL version did not specify the profile
+    None,
+    Core,
+    Compatibility,
+    Es,
+}
+
 /// Optimization level.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OptimizationLevel {
     /// No optimization
     Zero,
@@ -369,6 +386,21 @@ impl CompileOptions {
     pub fn set_optimization_level(&mut self, level: OptimizationLevel) {
         unsafe { ffi::shaderc_compile_options_set_optimization_level(self.raw, level as int32_t) }
     }
+
+    /// Forces the GLSL language `version` and `profile`.
+    ///
+    /// The version number is the same as would appear in the `#version`
+    /// directive in the source. Version and profile specified here
+    /// overrides the `#version` directive in the source code. Use
+    /// `GlslProfile::None` for GLSL versions that do not define profiles,
+    /// e.g., version below 150.
+    pub fn set_forced_version_profile(&mut self, version: u32, profile: GlslProfile) {
+        unsafe {
+            ffi::shaderc_compile_options_set_forced_version_profile(self.raw,
+                                                                    version as c_int,
+                                                                    profile as int32_t)
+        }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -475,6 +507,7 @@ shader.glsl:2: warning: attribute deprecated in version 130; may be removed in f
 shader.glsl:3: warning: attribute deprecated in version 130; may be removed in future release\n";
     static DEBUG_INFO: &'static str = "#version 140\n \
                                        void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
+    static CORE_PROFILE: &'static str = "void main() {\n gl_ClipDistance[0] = 5.;\n }";
 
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
@@ -643,6 +676,39 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
                       .unwrap();
         assert!(!result.as_text().contains("OpName"));
         assert!(!result.as_text().contains("OpSource"));
+    }
+
+    #[test]
+    fn test_compile_options_set_forced_version_profile_ok() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_forced_version_profile(450, GlslProfile::Core);
+        let result = c.compile_into_spirv(CORE_PROFILE,
+                                          ShaderKind::Vertex,
+                                          "shader.glsl",
+                                          "main",
+                                          &options)
+                      .unwrap();
+        assert!(result.len() > 20);
+        assert!(result.as_binary().first() == Some(&0x07230203));
+        let function_end_word: u32 = (1 << 16) | 56;
+        assert!(result.as_binary().last() == Some(&function_end_word));
+    }
+
+    #[test]
+    fn test_compile_options_set_forced_version_profile_err() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_forced_version_profile(310, GlslProfile::Es);
+        let result = c.compile_into_spirv(CORE_PROFILE,
+                                          ShaderKind::Vertex,
+                                          "shader.glsl",
+                                          "main",
+                                          &options);
+        assert!(result.is_err());
+        assert_matches!(result.err(),
+                        Some(Error::CompilationError(3, ref s))
+                            if s.contains("error: 'gl_ClipDistance' : undeclared identifier"));
     }
 
     #[test]

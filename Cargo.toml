@@ -5,3 +5,6 @@ authors = ["Lei Zhang <antiagainst@gmail.com>"]
 
 [dependencies]
 libc = "0.2"
+
+[dev-dependencies]
+assert_matches = "1.0"
