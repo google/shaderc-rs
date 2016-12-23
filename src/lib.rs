@@ -159,6 +159,14 @@ pub enum ShaderKind {
     SpirvAssembly,
 }
 
+/// Optimization level.
+pub enum OptimizationLevel {
+    /// No optimization
+    Zero,
+    /// Optimize towards reducing code size
+    Size,
+}
+
 /// An opaque object managing all compiler states.
 pub struct Compiler {
     raw: *mut ffi::ShadercCompiler,
@@ -353,6 +361,13 @@ impl CompileOptions {
     /// Sets the compiler mode to generate debug information in the output.
     pub fn set_generate_debug_info(&mut self) {
         unsafe { ffi::shaderc_compile_options_set_generate_debug_info(self.raw) }
+    }
+
+    /// Sets the optimization level to `level`.
+    ///
+    /// If mulitple invocations for this method, only the last one takes effect.
+    pub fn set_optimization_level(&mut self, level: OptimizationLevel) {
+        unsafe { ffi::shaderc_compile_options_set_optimization_level(self.raw, level as int32_t) }
     }
 }
 
@@ -598,6 +613,36 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
                                                    &options)
                       .unwrap();
         assert!(result.as_text().contains("debug_info_sample"));
+    }
+
+    #[test]
+    fn test_compile_options_set_optimization_level_zero() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_optimization_level(OptimizationLevel::Zero);
+        let result = c.compile_into_spirv_assembly(DEBUG_INFO,
+                                                   ShaderKind::Vertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &options)
+                      .unwrap();
+        assert!(result.as_text().contains("OpName"));
+        assert!(result.as_text().contains("OpSource"));
+    }
+
+    #[test]
+    fn test_compile_options_set_optimization_level_size() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_optimization_level(OptimizationLevel::Size);
+        let result = c.compile_into_spirv_assembly(DEBUG_INFO,
+                                                   ShaderKind::Vertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &options)
+                      .unwrap();
+        assert!(!result.as_text().contains("OpName"));
+        assert!(!result.as_text().contains("OpSource"));
     }
 
     #[test]

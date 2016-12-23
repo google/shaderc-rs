@@ -54,6 +54,8 @@ extern "C" {
     pub fn shaderc_compile_options_set_source_language(options: *mut ShadercCompileOptions,
                                                        language: int32_t);
     pub fn shaderc_compile_options_set_generate_debug_info(options: *mut ShadercCompileOptions);
+    pub fn shaderc_compile_options_set_optimization_level(options: *mut ShadercCompileOptions,
+                                                          level: int32_t);
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> int32_t;
