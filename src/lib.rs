@@ -410,6 +410,13 @@ impl CompileOptions {
     pub fn set_suppress_warnings(&mut self) {
         unsafe { ffi::shaderc_compile_options_set_suppress_warnings(self.raw) }
     }
+
+    /// Sets the compiler mode to treat all warnings as errors.
+    ///
+    /// Note that the suppress-warnings mode overrides this.
+    pub fn set_warnings_as_errors(&mut self) {
+        unsafe { ffi::shaderc_compile_options_set_warnings_as_errors(self.raw) }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -732,6 +739,22 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
                                           &options)
                       .unwrap();
         assert_eq!(0, result.get_num_warnings());
+    }
+
+    #[test]
+    fn test_compile_options_set_warnings_as_errors() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_warnings_as_errors();
+        let result = c.compile_into_spirv(TWO_WARNING,
+                                          ShaderKind::Vertex,
+                                          "shader.glsl",
+                                          "main",
+                                          &options);
+        assert!(result.is_err());
+        assert_matches!(result.err(),
+                        Some(Error::CompilationError(2, ref s))
+                            if s.contains("error: attribute deprecated in version 130;"));
     }
 
     #[test]
