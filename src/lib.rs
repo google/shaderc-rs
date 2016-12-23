@@ -121,6 +121,18 @@ impl fmt::Display for Error {
 /// Compilation status.
 pub type Result<T> = result::Result<T, Error>;
 
+/// Target environment.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TargetEnv {
+    /// Compile under Vulkan semantics.
+    Vulkan,
+    /// Compile under OpenGL semantics.
+    OpenGL,
+    /// Compile under OpenGL semantics, including compatibility profile functions.
+    OpenGLCompat,
+}
+
 /// Source language.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -314,6 +326,10 @@ pub struct CompileOptions {
 impl CompileOptions {
     /// Returns a default-initialized compilation options object.
     ///
+    /// The default options are:
+    /// * Target environment: Vulkan
+    /// * Source language: GLSL
+    ///
     /// A return of `None` indicates that there was an error initializing
     /// the underlying options object.
     pub fn new() -> Option<CompileOptions> {
@@ -370,7 +386,7 @@ impl CompileOptions {
 
     /// Sets the source language.
     ///
-    /// The default is GLSL.
+    /// The default is GLSL if not set.
     pub fn set_source_language(&mut self, language: SourceLanguage) {
         unsafe { ffi::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
     }
@@ -416,6 +432,17 @@ impl CompileOptions {
     /// Note that the suppress-warnings mode overrides this.
     pub fn set_warnings_as_errors(&mut self) {
         unsafe { ffi::shaderc_compile_options_set_warnings_as_errors(self.raw) }
+    }
+
+    /// Sets the target enviroment to `env`, affecting which warnings or errors
+    /// will be issued.
+    ///
+    /// The default is Vulkan if not set.
+    ///
+    /// `version` will be used for distinguishing between different versions
+    /// of the target environment. "0" is the only supported value right now.
+    pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
+        unsafe { ffi::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
     }
 }
 
@@ -519,11 +546,19 @@ mod tests {
     static TWO_WARNING: &'static str = "#version 140\n\
                                         attribute float x;\n attribute float y;\n void main() {}";
     static TWO_WARNING_MSG: &'static str = "\
-shader.glsl:2: warning: attribute deprecated in version 130; may be removed in future release\n\
-shader.glsl:3: warning: attribute deprecated in version 130; may be removed in future release\n";
+shader.glsl:2: warning: attribute deprecated in version 130; may be removed in future release
+shader.glsl:3: warning: attribute deprecated in version 130; may be removed in future release
+";
     static DEBUG_INFO: &'static str = "#version 140\n \
                                        void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
     static CORE_PROFILE: &'static str = "void main() {\n gl_ClipDistance[0] = 5.;\n }";
+    /// A shader that compiles under OpenGL compatibility but not core profile rules.
+    static COMPAT_FRAG: &'static str = "\
+#version 100
+uniform highp sampler2D tex;
+void main() {
+    gl_FragColor = texture2D(tex, vec2(0.));
+}";
 
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
@@ -755,6 +790,56 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
         assert_matches!(result.err(),
                         Some(Error::CompilationError(2, ref s))
                             if s.contains("error: attribute deprecated in version 130;"));
+    }
+
+    #[test]
+    fn test_compile_options_set_target_env_ok() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_target_env(TargetEnv::OpenGLCompat, 0);
+        let result = c.compile_into_spirv(COMPAT_FRAG,
+                                          ShaderKind::Fragment,
+                                          "shader.glsl",
+                                          "main",
+                                          &options)
+                      .unwrap();
+        assert!(result.len() > 20);
+        assert!(result.as_binary().first() == Some(&0x07230203));
+        let function_end_word: u32 = (1 << 16) | 56;
+        assert!(result.as_binary().last() == Some(&function_end_word));
+    }
+
+    #[test]
+    fn test_compile_options_set_target_env_err_vulkan() {
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
+        let result = c.compile_into_spirv(COMPAT_FRAG,
+                                          ShaderKind::Fragment,
+                                          "shader.glsl",
+                                          "main",
+                                          &options);
+        assert!(result.is_err());
+        assert_matches!(result.err(),
+                        Some(Error::CompilationError(4, ref s))
+                            if s.contains("error: #version: ES shaders for Vulkan SPIR-V \
+                                           require version 310 or higher"));
+    }
+
+    #[test]
+    fn test_compile_options_set_target_env_err_opengl() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_target_env(TargetEnv::OpenGL, 0);
+        let result = c.compile_into_spirv(COMPAT_FRAG,
+                                          ShaderKind::Fragment,
+                                          "shader.glsl",
+                                          "main",
+                                          &options);
+        assert!(result.is_err());
+        assert_matches!(result.err(),
+                        Some(Error::CompilationError(3, ref s))
+                            if s.contains("error: #version: ES shaders for OpenGL SPIR-V \
+                                           are not supported"));
     }
 
     #[test]

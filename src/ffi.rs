@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use libc::{c_char, c_int, int32_t, size_t};
+use libc::{c_char, c_int, int32_t, uint32_t, size_t};
 
 pub enum ShadercCompiler {}
 pub enum ShadercCompileOptions {}
@@ -61,6 +61,9 @@ extern "C" {
                                                               profile: int32_t);
     pub fn shaderc_compile_options_set_suppress_warnings(options: *mut ShadercCompileOptions);
     pub fn shaderc_compile_options_set_warnings_as_errors(options: *mut ShadercCompileOptions);
+    pub fn shaderc_compile_options_set_target_env(options: *mut ShadercCompileOptions,
+                                                  env: int32_t,
+                                                  version: uint32_t);
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> int32_t;
