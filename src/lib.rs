@@ -18,11 +18,11 @@
 //! for compiling GLSL/HLSL source code to SPIRV modules. It has been shipping
 //! in the Android NDK since version r12b.
 //!
-//! The `shaderc_combined` library (`libshaderc_combined.a`) is required for
-//! proper linking. You can compile it by checking out the shaderc project and
-//! follow the instructions there. Then place `libshaderc_combined.a` at a path
-//! that is scanned by the linker (e.g., the `deps` directory within the
-//! `target` directory).
+//! The `shaderc_combined` library (`libshaderc_combined.a` on Unix like
+//! systems) is required for proper linking. You can compile it by checking out
+//! the shaderc project and follow the instructions there. Then place
+//! `libshaderc_combined.a` at a path that is scanned by the linker (e.g., the
+//! `deps` directory within the `target` directory).
 //!
 //! # Examples
 //!
