@@ -349,6 +349,11 @@ impl CompileOptions {
     pub fn set_source_language(&mut self, language: SourceLanguage) {
         unsafe { ffi::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
     }
+
+    /// Sets the compiler mode to generate debug information in the output.
+    pub fn set_generate_debug_info(&mut self) {
+        unsafe { ffi::shaderc_compile_options_set_generate_debug_info(self.raw) }
+    }
 }
 
 impl Drop for CompileOptions {
@@ -453,6 +458,8 @@ mod tests {
     static TWO_WARNING_MSG: &'static str = "\
 shader.glsl:2: warning: attribute deprecated in version 130; may be removed in future release\n\
 shader.glsl:3: warning: attribute deprecated in version 130; may be removed in future release\n";
+    static DEBUG_INFO: &'static str = "#version 140\n \
+                                       void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
 
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
@@ -577,6 +584,20 @@ shader.glsl:3: warning: attribute deprecated in version 130; may be removed in f
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
         assert!(result.as_binary().last() == Some(&function_end_word));
+    }
+
+    #[test]
+    fn test_compile_options_set_generate_debug_info() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_generate_debug_info();
+        let result = c.compile_into_spirv_assembly(DEBUG_INFO,
+                                                   ShaderKind::Vertex,
+                                                   "shader.glsl",
+                                                   "main",
+                                                   &options)
+                      .unwrap();
+        assert!(result.as_text().contains("debug_info_sample"));
     }
 
     #[test]
