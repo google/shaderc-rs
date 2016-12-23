@@ -443,6 +443,46 @@ impl CompileOptions {
         }
     }
 
+    /// Sets the target enviroment to `env`, affecting which warnings or errors
+    /// will be issued.
+    ///
+    /// The default is Vulkan if not set.
+    ///
+    /// `version` will be used for distinguishing between different versions
+    /// of the target environment. "0" is the only supported value right now.
+    pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
+        unsafe { ffi::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
+    }
+
+    /// Sets the source language.
+    ///
+    /// The default is GLSL if not set.
+    pub fn set_source_language(&mut self, language: SourceLanguage) {
+        unsafe { ffi::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
+    }
+
+    /// Forces the GLSL language `version` and `profile`.
+    ///
+    /// The version number is the same as would appear in the `#version`
+    /// directive in the source. Version and profile specified here
+    /// overrides the `#version` directive in the source code. Use
+    /// `GlslProfile::None` for GLSL versions that do not define profiles,
+    /// e.g., version below 150.
+    pub fn set_forced_version_profile(&mut self, version: u32, profile: GlslProfile) {
+        unsafe {
+            ffi::shaderc_compile_options_set_forced_version_profile(self.raw,
+                                                                    version as c_int,
+                                                                    profile as int32_t)
+        }
+    }
+
+    /// Sets the resource `limit` to the given `value`.
+    pub fn set_limit(&mut self, limit: Limit, value: i32) {
+        unsafe {
+            ffi::shaderc_compile_options_set_limit(self.raw, limit as int32_t, value as c_int)
+        }
+    }
+
     /// Adds a predefined macro to the compilation options.
     ///
     /// This has the same effect as passing `-Dname=value` to the command-line
@@ -473,18 +513,6 @@ impl CompileOptions {
         }
     }
 
-    /// Sets the source language.
-    ///
-    /// The default is GLSL if not set.
-    pub fn set_source_language(&mut self, language: SourceLanguage) {
-        unsafe { ffi::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
-    }
-
-    /// Sets the compiler mode to generate debug information in the output.
-    pub fn set_generate_debug_info(&mut self) {
-        unsafe { ffi::shaderc_compile_options_set_generate_debug_info(self.raw) }
-    }
-
     /// Sets the optimization level to `level`.
     ///
     /// If mulitple invocations for this method, only the last one takes effect.
@@ -492,19 +520,9 @@ impl CompileOptions {
         unsafe { ffi::shaderc_compile_options_set_optimization_level(self.raw, level as int32_t) }
     }
 
-    /// Forces the GLSL language `version` and `profile`.
-    ///
-    /// The version number is the same as would appear in the `#version`
-    /// directive in the source. Version and profile specified here
-    /// overrides the `#version` directive in the source code. Use
-    /// `GlslProfile::None` for GLSL versions that do not define profiles,
-    /// e.g., version below 150.
-    pub fn set_forced_version_profile(&mut self, version: u32, profile: GlslProfile) {
-        unsafe {
-            ffi::shaderc_compile_options_set_forced_version_profile(self.raw,
-                                                                    version as c_int,
-                                                                    profile as int32_t)
-        }
+    /// Sets the compiler mode to generate debug information in the output.
+    pub fn set_generate_debug_info(&mut self) {
+        unsafe { ffi::shaderc_compile_options_set_generate_debug_info(self.raw) }
     }
 
     /// Sets the compiler mode to suppress warnings.
@@ -521,24 +539,6 @@ impl CompileOptions {
     /// Note that the suppress-warnings mode overrides this.
     pub fn set_warnings_as_errors(&mut self) {
         unsafe { ffi::shaderc_compile_options_set_warnings_as_errors(self.raw) }
-    }
-
-    /// Sets the target enviroment to `env`, affecting which warnings or errors
-    /// will be issued.
-    ///
-    /// The default is Vulkan if not set.
-    ///
-    /// `version` will be used for distinguishing between different versions
-    /// of the target environment. "0" is the only supported value right now.
-    pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
-        unsafe { ffi::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
-    }
-
-    /// Sets the resource `limit` to the given `value`.
-    pub fn set_limit(&mut self, limit: Limit, value: i32) {
-        unsafe {
-            ffi::shaderc_compile_options_set_limit(self.raw, limit as int32_t, value as c_int)
-        }
     }
 }
 
