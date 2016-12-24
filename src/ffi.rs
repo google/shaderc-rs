@@ -40,6 +40,14 @@ extern "C" {
                                              entry_point_name: *const c_char,
                                              additional_options: *const ShadercCompileOptions)
                                              -> *mut ShadercCompilationResult;
+    pub fn shaderc_compile_into_preprocessed_text(compiler: *const ShadercCompiler,
+                                                  source_text: *const c_char,
+                                                  source_size: size_t,
+                                                  shader_kind: int32_t,
+                                                  input_file_name: *const c_char,
+                                                  entry_point_name: *const c_char,
+                                                  additional_options: *const ShadercCompileOptions)
+                                                  -> *mut ShadercCompilationResult;
 
     pub fn shaderc_compile_options_initialize() -> *mut ShadercCompileOptions;
     pub fn shaderc_compile_options_clone(options: *const ShadercCompileOptions)

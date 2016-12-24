@@ -374,7 +374,7 @@ impl Compiler {
     }
 
     /// Like `compile_into_spirv` but the result contains SPIR-V assembly text
-    /// instead of binary module.
+    /// instead of a SPIR-V binary module.
     pub fn compile_into_spirv_assembly(&mut self,
                                        source_text: &str,
                                        shader_kind: ShaderKind,
@@ -396,6 +396,33 @@ impl Compiler {
                                                    c_file.as_ptr(),
                                                    c_entry_point.as_ptr(),
                                                    additional_options.raw)
+        };
+        Compiler::handle_compilation_result(result, false)
+    }
+
+    /// Like `compile_into_spirv` but the result contains preprocessed source
+    /// code instead of a SPIR-V binary module.
+    pub fn preprocess(&mut self,
+                      source_text: &str,
+                      input_file_name: &str,
+                      entry_point_name: &str,
+                      additional_options: &CompileOptions)
+                      -> Result<CompilationResult> {
+        let source_size = source_text.len();
+        let c_source = CString::new(source_text).expect("cannot convert source to c string");
+        let c_file = CString::new(input_file_name)
+                         .expect("cannot convert input_file_name to c string");
+        let c_entry_point = CString::new(entry_point_name)
+                                .expect("cannot convert entry_point_name to c string");
+        let result = unsafe {
+            ffi::shaderc_compile_into_preprocessed_text(self.raw,
+                                                        c_source.as_ptr(),
+                                                        source_size,
+                                                        // Stage doesn't matter for preprocess
+                                                        ShaderKind::Vertex as int32_t,
+                                                        c_file.as_ptr(),
+                                                        c_entry_point.as_ptr(),
+                                                        additional_options.raw)
         };
         Compiler::handle_compilation_result(result, false)
     }
@@ -706,6 +733,16 @@ void main() {
                                                    &options)
                       .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
+    }
+
+    #[test]
+    fn test_preprocess() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.add_macro_definition("E", Some("main"));
+        let result = c.preprocess(VOID_E, "shader.glsl", "main", &options)
+                      .unwrap();
+        assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
     }
 
     #[test]
