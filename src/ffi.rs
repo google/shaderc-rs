@@ -48,6 +48,11 @@ extern "C" {
                                                   entry_point_name: *const c_char,
                                                   additional_options: *const ShadercCompileOptions)
                                                   -> *mut ShadercCompilationResult;
+    pub fn shaderc_assemble_into_spv(compiler: *const ShadercCompiler,
+                                     source_assembly: *const c_char,
+                                     source_size: size_t,
+                                     additional_options: *const ShadercCompileOptions)
+                                     -> *mut ShadercCompilationResult;
 
     pub fn shaderc_compile_options_initialize() -> *mut ShadercCompileOptions;
     pub fn shaderc_compile_options_clone(options: *const ShadercCompileOptions)

@@ -328,8 +328,8 @@ impl Compiler {
         }
     }
 
-    /// Compiles the given source string `source_text` to a SPIR-V module
-    /// according to the given `additional_options`.
+    /// Compiles the given source string `source_text` to a SPIR-V binary
+    /// module according to the given `additional_options`.
     ///
     /// The source string will be compiled into a SPIR-V binary module
     /// contained in a `CompilationResult` object if no error happens.
@@ -375,6 +375,10 @@ impl Compiler {
 
     /// Like `compile_into_spirv` but the result contains SPIR-V assembly text
     /// instead of a SPIR-V binary module.
+    ///
+    /// The output SPIR-V assembly string will be of the format defined in
+    /// the [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools/blob/master/syntax.md)
+    /// project.
     pub fn compile_into_spirv_assembly(&mut self,
                                        source_text: &str,
                                        shader_kind: ShaderKind,
@@ -425,6 +429,30 @@ impl Compiler {
                                                         additional_options.raw)
         };
         Compiler::handle_compilation_result(result, false)
+    }
+
+    /// Assembles the given SPIR-V assembly string `source_assembly` into a
+    /// SPIR-V binary module according to the given `additional_options`.
+    ///
+    /// The input SPIR-V assembly string should be of the format defined in
+    /// the [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools/blob/master/syntax.md)
+    /// project.
+    ///
+    /// For options specified in `additional_options`, the assembling will
+    /// only pick those ones suitable for assembling.
+    pub fn assemble(&mut self,
+                    source_assembly: &str,
+                    additional_options: &CompileOptions)
+                    -> Result<CompilationResult> {
+        let source_size = source_assembly.len();
+        let c_source = CString::new(source_assembly).expect("cannot convert source to c string");
+        let result = unsafe {
+            ffi::shaderc_assemble_into_spv(self.raw,
+                                           c_source.as_ptr(),
+                                           source_size,
+                                           additional_options.raw)
+        };
+        Compiler::handle_compilation_result(result, true)
     }
 }
 
@@ -743,6 +771,18 @@ void main() {
         let result = c.preprocess(VOID_E, "shader.glsl", "main", &options)
                       .unwrap();
         assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
+    }
+
+    #[test]
+    fn test_assemble() {
+        let mut c = Compiler::new().unwrap();
+        let options = CompileOptions::new().unwrap();
+        let result = c.assemble(VOID_MAIN_ASSEMBLY, &options)
+                      .unwrap();
+        assert!(result.len() > 20);
+        assert!(result.as_binary().first() == Some(&0x07230203));
+        let function_end_word: u32 = (1 << 16) | 56;
+        assert!(result.as_binary().last() == Some(&function_end_word));
     }
 
     #[test]
