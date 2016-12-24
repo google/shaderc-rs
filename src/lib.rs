@@ -31,19 +31,20 @@
 //! ```
 //! use shaderc;
 //!
-//! let source = "#version 310 es\n void main() {}";
+//! let source = "#version 310 es\n void EP() {}";
 //!
 //! let mut compiler = shaderc::Compiler::new().unwrap();
-//! let options = shaderc::CompileOptions::new().unwrap();
+//! let mut options = shaderc::CompileOptions::new().unwrap();
+//! options.add_macro_definition("EP", Some("main"));
 //! let binary_result = compiler.compile_into_spirv(
 //!     source, shaderc::ShaderKind::Vertex,
-//!     "shader.glsl", "main", &options).unwrap();
+//!     "shader.glsl", "main", Some(&options)).unwrap();
 //!
 //! assert_eq!(Some(&0x07230203), binary_result.as_binary().first());
 //!
 //! let text_result = compiler.compile_into_spirv_assembly(
 //!     source, shaderc::ShaderKind::Vertex,
-//!     "shader.glsl", "main", &options).unwrap();
+//!     "shader.glsl", "main", Some(&options)).unwrap();
 //!
 //! assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 //! ```
@@ -286,6 +287,9 @@ pub enum Limit {
 }
 
 /// An opaque object managing all compiler states.
+///
+/// Creating an `Compiler` object has substantial resource costs; so it is
+/// recommended to keep one object around for all tasks.
 pub struct Compiler {
     raw: *mut ffi::ShadercCompiler,
 }
@@ -353,7 +357,7 @@ impl Compiler {
                               shader_kind: ShaderKind,
                               input_file_name: &str,
                               entry_point_name: &str,
-                              additional_options: &CompileOptions)
+                              additional_options: Option<&CompileOptions>)
                               -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
@@ -368,7 +372,7 @@ impl Compiler {
                                           shader_kind as int32_t,
                                           c_file.as_ptr(),
                                           c_entry_point.as_ptr(),
-                                          additional_options.raw)
+                                          additional_options.map_or(ptr::null(), |ref o| o.raw))
         };
         Compiler::handle_compilation_result(result, true)
     }
@@ -384,7 +388,7 @@ impl Compiler {
                                        shader_kind: ShaderKind,
                                        input_file_name: &str,
                                        entry_point_name: &str,
-                                       additional_options: &CompileOptions)
+                                       additional_options: Option<&CompileOptions>)
                                        -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
@@ -399,7 +403,8 @@ impl Compiler {
                                                    shader_kind as int32_t,
                                                    c_file.as_ptr(),
                                                    c_entry_point.as_ptr(),
-                                                   additional_options.raw)
+                                                   additional_options.map_or(ptr::null(),
+                                                                             |ref o| o.raw))
         };
         Compiler::handle_compilation_result(result, false)
     }
@@ -410,7 +415,7 @@ impl Compiler {
                       source_text: &str,
                       input_file_name: &str,
                       entry_point_name: &str,
-                      additional_options: &CompileOptions)
+                      additional_options: Option<&CompileOptions>)
                       -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
@@ -426,7 +431,8 @@ impl Compiler {
                                                         ShaderKind::Vertex as int32_t,
                                                         c_file.as_ptr(),
                                                         c_entry_point.as_ptr(),
-                                                        additional_options.raw)
+                                                        additional_options.map_or(ptr::null(),
+                                                                                  |ref o| o.raw))
         };
         Compiler::handle_compilation_result(result, false)
     }
@@ -442,7 +448,7 @@ impl Compiler {
     /// only pick those ones suitable for assembling.
     pub fn assemble(&mut self,
                     source_assembly: &str,
-                    additional_options: &CompileOptions)
+                    additional_options: Option<&CompileOptions>)
                     -> Result<CompilationArtifact> {
         let source_size = source_assembly.len();
         let c_source = CString::new(source_assembly).expect("cannot convert source to c string");
@@ -450,7 +456,7 @@ impl Compiler {
             ffi::shaderc_assemble_into_spv(self.raw,
                                            c_source.as_ptr(),
                                            source_size,
-                                           additional_options.raw)
+                                           additional_options.map_or(ptr::null(), |ref o| o.raw))
         };
         Compiler::handle_compilation_result(result, true)
     }
@@ -774,12 +780,11 @@ void main() {
     #[test]
     fn test_compile_vertex_shader_into_spirv() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(VOID_MAIN,
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options)
+                                          None)
                       .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
@@ -790,12 +795,11 @@ void main() {
     #[test]
     fn test_compile_vertex_shader_into_spirv_assembly() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv_assembly(VOID_MAIN,
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   None)
                       .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
@@ -805,7 +809,7 @@ void main() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
-        let result = c.preprocess(VOID_E, "shader.glsl", "main", &options)
+        let result = c.preprocess(VOID_E, "shader.glsl", "main", Some(&options))
                       .unwrap();
         assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
     }
@@ -813,8 +817,7 @@ void main() {
     #[test]
     fn test_assemble() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
-        let result = c.assemble(VOID_MAIN_ASSEMBLY, &options)
+        let result = c.assemble(VOID_MAIN_ASSEMBLY, None)
                       .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
@@ -831,7 +834,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   Some(&options))
                       .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
@@ -845,7 +848,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   Some(&options))
                       .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
@@ -859,7 +862,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   Some(&options))
                       .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
@@ -874,7 +877,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &o)
+                                                   Some(&o))
                       .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
@@ -888,7 +891,7 @@ void main() {
                                           ShaderKind::Vertex,
                                           "shader.hlsl",
                                           "main",
-                                          &options)
+                                          Some(&options))
                       .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
@@ -905,7 +908,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   Some(&options))
                       .unwrap();
         assert!(result.as_text().contains("debug_info_sample"));
     }
@@ -919,7 +922,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   Some(&options))
                       .unwrap();
         assert!(result.as_text().contains("OpName"));
         assert!(result.as_text().contains("OpSource"));
@@ -934,7 +937,7 @@ void main() {
                                                    ShaderKind::Vertex,
                                                    "shader.glsl",
                                                    "main",
-                                                   &options)
+                                                   Some(&options))
                       .unwrap();
         assert!(!result.as_text().contains("OpName"));
         assert!(!result.as_text().contains("OpSource"));
@@ -949,7 +952,7 @@ void main() {
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options)
+                                          Some(&options))
                       .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
@@ -966,7 +969,7 @@ void main() {
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          Some(&options));
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
@@ -982,7 +985,7 @@ void main() {
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options)
+                                          Some(&options))
                       .unwrap();
         assert_eq!(0, result.get_num_warnings());
     }
@@ -996,7 +999,7 @@ void main() {
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          Some(&options));
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(2, ref s))
@@ -1012,7 +1015,7 @@ void main() {
                                           ShaderKind::Fragment,
                                           "shader.glsl",
                                           "main",
-                                          &options)
+                                          Some(&options))
                       .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
@@ -1023,12 +1026,11 @@ void main() {
     #[test]
     fn test_compile_options_set_target_env_err_vulkan() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(COMPAT_FRAG,
                                           ShaderKind::Fragment,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          None);
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(4, ref s))
@@ -1045,7 +1047,7 @@ void main() {
                                           ShaderKind::Fragment,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          Some(&options));
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
@@ -1074,44 +1076,43 @@ void main() {
                                      ShaderKind::Fragment,
                                      "shader.glsl",
                                      "main",
-                                     &options)
+                                     Some(&options))
                  .is_ok());
         assert!(c.compile_into_spirv(&texture_offset!(8),
                                      ShaderKind::Fragment,
                                      "shader.glsl",
                                      "main",
-                                     &options)
+                                     Some(&options))
                  .is_err());
         options.set_limit(Limit::MaxProgramTexelOffset, 10);
         assert!(c.compile_into_spirv(&texture_offset!(8),
                                      ShaderKind::Fragment,
                                      "shader.glsl",
                                      "main",
-                                     &options)
+                                     Some(&options))
                  .is_ok());
         assert!(c.compile_into_spirv(&texture_offset!(10),
                                      ShaderKind::Fragment,
                                      "shader.glsl",
                                      "main",
-                                     &options)
+                                     Some(&options))
                  .is_ok());
         assert!(c.compile_into_spirv(&texture_offset!(11),
                                      ShaderKind::Fragment,
                                      "shader.glsl",
                                      "main",
-                                     &options)
+                                     Some(&options))
                  .is_err());
     }
 
     #[test]
     fn test_error_compilation_error() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(TWO_ERROR,
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          None);
         assert!(result.is_err());
         assert_eq!(Some(Error::CompilationError(2, TWO_ERROR_MSG.to_string())),
                    result.err());
@@ -1120,12 +1121,11 @@ void main() {
     #[test]
     fn test_error_invalid_stage() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(VOID_MAIN,
                                           ShaderKind::InferFromSource,
                                           "shader.glsl",
                                           "main",
-                                          &options);
+                                          None);
         assert!(result.is_err());
         assert_eq!(Some(Error::InvalidStage("".to_string())), result.err());
     }
@@ -1133,12 +1133,11 @@ void main() {
     #[test]
     fn test_warning() {
         let mut c = Compiler::new().unwrap();
-        let options = CompileOptions::new().unwrap();
         let result = c.compile_into_spirv(TWO_WARNING,
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
-                                          &options)
+                                          None)
                       .unwrap();
         assert_eq!(2, result.get_num_warnings());
         assert_eq!(TWO_WARNING_MSG.to_string(), result.get_warning_messages());
