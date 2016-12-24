@@ -88,4 +88,6 @@ extern "C" {
     pub fn shaderc_result_get_error_message(result: *const ShadercCompilationResult) -> *const c_char;
     pub fn shaderc_result_get_length(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_bytes(result: *const ShadercCompilationResult) -> *const c_char;
+
+    pub fn shaderc_get_spv_version(version: *mut c_int, revision: *mut c_int);
 }
