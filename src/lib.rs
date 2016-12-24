@@ -692,6 +692,31 @@ pub fn get_spirv_version() -> (u32, u32) {
     (version as u32, revision as u32)
 }
 
+/// Parses the version and profile from the given `string`.
+///
+/// The string should contain both version and profile, like: `450core`.
+/// Returns `None` if the string can not be parsed.
+pub fn parse_version_profile(string: &str) -> Option<(u32, GlslProfile)> {
+    let mut version: i32 = 0;
+    let mut profile: i32 = 0;
+    let c_string = CString::new(string).expect("cannot convert string to c string");
+    let result = unsafe {
+        ffi::shaderc_parse_version_profile(c_string.as_ptr(), &mut version, &mut profile)
+    };
+    if result == false {
+        None
+    } else {
+        let p = match profile {
+            0 => GlslProfile::None,
+            1 => GlslProfile::Core,
+            2 => GlslProfile::Compatibility,
+            3 => GlslProfile::Es,
+            _ => panic!("internal error: unhandled profile"),
+        };
+        Some((version as u32, p))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1123,5 +1148,15 @@ void main() {
     fn test_get_spirv_version() {
         let (version, _) = get_spirv_version();
         assert_eq!(0x10000, version);
+    }
+
+    #[test]
+    fn test_parse_version_profile() {
+        assert_eq!(Some((310, GlslProfile::Es)), parse_version_profile("310es"));
+        assert_eq!(Some((450, GlslProfile::Compatibility)),
+                   parse_version_profile("450compatibility"));
+        assert_eq!(Some((140, GlslProfile::None)), parse_version_profile("140"));
+        assert_eq!(None, parse_version_profile("something"));
+        assert_eq!(None, parse_version_profile(""));
     }
 }

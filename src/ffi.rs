@@ -90,4 +90,8 @@ extern "C" {
     pub fn shaderc_result_get_bytes(result: *const ShadercCompilationResult) -> *const c_char;
 
     pub fn shaderc_get_spv_version(version: *mut c_int, revision: *mut c_int);
+    pub fn shaderc_parse_version_profile(str: *const c_char,
+                                         version: *mut c_int,
+                                         profile: *mut int32_t)
+                                         -> bool;
 }
