@@ -306,10 +306,10 @@ impl Compiler {
 
     fn handle_compilation_result(result: *mut ffi::ShadercCompilationResult,
                                  is_binary: bool)
-                                 -> Result<CompilationResult> {
+                                 -> Result<CompilationArtifact> {
         let status = unsafe { ffi::shaderc_result_get_compilation_status(result) };
         if status == 0 {
-            Ok(CompilationResult::new(result, is_binary))
+            Ok(CompilationArtifact::new(result, is_binary))
         } else {
             let num_errors = unsafe { ffi::shaderc_result_get_num_errors(result) } as u32;
             let reason = unsafe {
@@ -332,7 +332,7 @@ impl Compiler {
     /// module according to the given `additional_options`.
     ///
     /// The source string will be compiled into a SPIR-V binary module
-    /// contained in a `CompilationResult` object if no error happens.
+    /// contained in a `CompilationArtifact` object if no error happens.
     ///
     /// The source string is treated as the given shader kind `shader_kind`.
     /// If `InferFromSource` is given, the compiler will try to deduce the
@@ -354,7 +354,7 @@ impl Compiler {
                               input_file_name: &str,
                               entry_point_name: &str,
                               additional_options: &CompileOptions)
-                              -> Result<CompilationResult> {
+                              -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
         let c_file = CString::new(input_file_name)
@@ -385,7 +385,7 @@ impl Compiler {
                                        input_file_name: &str,
                                        entry_point_name: &str,
                                        additional_options: &CompileOptions)
-                                       -> Result<CompilationResult> {
+                                       -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
         let c_file = CString::new(input_file_name)
@@ -411,7 +411,7 @@ impl Compiler {
                       input_file_name: &str,
                       entry_point_name: &str,
                       additional_options: &CompileOptions)
-                      -> Result<CompilationResult> {
+                      -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
         let c_file = CString::new(input_file_name)
@@ -443,7 +443,7 @@ impl Compiler {
     pub fn assemble(&mut self,
                     source_assembly: &str,
                     additional_options: &CompileOptions)
-                    -> Result<CompilationResult> {
+                    -> Result<CompilationArtifact> {
         let source_size = source_assembly.len();
         let c_source = CString::new(source_assembly).expect("cannot convert source to c string");
         let result = unsafe {
@@ -604,14 +604,14 @@ impl Drop for CompileOptions {
 }
 
 /// An opaque object containing the results of compilation.
-pub struct CompilationResult {
+pub struct CompilationArtifact {
     raw: *mut ffi::ShadercCompilationResult,
     is_binary: bool,
 }
 
-impl CompilationResult {
-    fn new(result: *mut ffi::ShadercCompilationResult, is_binary: bool) -> CompilationResult {
-        CompilationResult {
+impl CompilationArtifact {
+    fn new(result: *mut ffi::ShadercCompilationResult, is_binary: bool) -> CompilationArtifact {
+        CompilationArtifact {
             raw: result,
             is_binary: is_binary,
         }
@@ -674,7 +674,7 @@ impl CompilationResult {
     }
 }
 
-impl Drop for CompilationResult {
+impl Drop for CompilationArtifact {
     fn drop(&mut self) {
         unsafe { ffi::shaderc_result_release(self.raw) }
     }
