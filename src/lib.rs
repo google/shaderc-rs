@@ -56,7 +56,7 @@ extern crate libc;
 extern crate assert_matches;
 
 use libc::{c_int, int32_t, uint32_t};
-use std::{fmt, ptr, result, slice, str};
+use std::{error, fmt, ptr, result, slice, str};
 use std::ffi::{CStr, CString};
 
 mod ffi;
@@ -115,6 +115,18 @@ impl fmt::Display for Error {
                     write!(f, "null result object: {}", r)
                 }
             }
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        match *self {
+            Error::CompilationError(_, _) => "compilation error",
+            Error::InternalError(_) => "internal error",
+            Error::InvalidStage(_) => "invalid stage",
+            Error::InvalidAssembly(_) => "invalid assembly",
+            Error::NullResultObject(_) => "null result object",
         }
     }
 }
