@@ -360,7 +360,7 @@ impl Compiler {
                               additional_options: Option<&CompileOptions>)
                               -> Result<CompilationArtifact> {
         let source_size = source_text.len();
-        let c_source = CString::new(source_text).expect("cannot convert source to c string");
+        let c_source = CString::new(source_text).expect("cannot convert source_text to c string");
         let c_file = CString::new(input_file_name)
                          .expect("cannot convert input_file_name to c string");
         let c_entry_point = CString::new(entry_point_name)
@@ -391,7 +391,7 @@ impl Compiler {
                                        additional_options: Option<&CompileOptions>)
                                        -> Result<CompilationArtifact> {
         let source_size = source_text.len();
-        let c_source = CString::new(source_text).expect("cannot convert source to c string");
+        let c_source = CString::new(source_text).expect("cannot convert source_text to c string");
         let c_file = CString::new(input_file_name)
                          .expect("cannot convert input_file_name to c string");
         let c_entry_point = CString::new(entry_point_name)
@@ -451,7 +451,8 @@ impl Compiler {
                     additional_options: Option<&CompileOptions>)
                     -> Result<CompilationArtifact> {
         let source_size = source_assembly.len();
-        let c_source = CString::new(source_assembly).expect("cannot convert source to c string");
+        let c_source = CString::new(source_assembly)
+                           .expect("cannot convert source_assembly to c string");
         let result = unsafe {
             ffi::shaderc_assemble_into_spv(self.raw,
                                            c_source.as_ptr(),
