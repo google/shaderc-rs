@@ -65,8 +65,10 @@ This project is licensed under the [Apache 2](LICENSE) license. Please see
 ### Authors
 
 This project is initialized and mainly developed by Lei Zhang
-([@antiagainst][antiagainst]).
+([@antiagainst][me]).
 
 ### TODO
 
 - [ ] include spport
+
+[me]: https://github.com/antiagainst
