@@ -19,7 +19,7 @@ pub enum ShadercCompileOptions {}
 pub enum ShadercCompilationResult {}
 
 #[link(name = "shaderc_combined")]
-#[link(name = "c++")]
+#[link(name = "stdc++")]
 extern "C" {
     pub fn shaderc_compiler_initialize() -> *mut ShadercCompiler;
     pub fn shaderc_compiler_release(compiler: *mut ShadercCompiler);
