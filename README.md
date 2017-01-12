@@ -1,6 +1,8 @@
 shaderc-rs
 ==========
 
+[![Version](https://img.shields.io/crates/v/shaderc.svg)](https://crates.io/crates/shaderc)
+[![Documentation](https://docs.rs/shaderc/badge.svg)](https://docs.rs/shaderc)
 [![Build Status](https://travis-ci.org/google/shaderc-rs.svg?branch=master)](https://travis-ci.org/google/shaderc-rs)
 
 Rust bindings for the [shaderc](https://github.com/google/shaderc) library.
