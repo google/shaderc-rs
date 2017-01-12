@@ -1,6 +1,6 @@
 [package]
 name = "shaderc"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 
 description = "Rust bindings for shaderc"
