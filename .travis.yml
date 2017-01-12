@@ -1,0 +1,50 @@
+language: rust
+
+dist: trusty
+sudo: false
+
+os:
+  - linux
+  - osx
+rust:
+  - stable
+  - nightly
+
+matrix:
+  fast_finish: true
+
+branches:
+  only:
+    - master
+
+addons:
+  apt:
+    packages:
+      - ninja-build
+      - clang-3.6
+
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install ninja; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CC=clang-3.6 CXX=clang++-3.6; fi
+
+before_script:
+  - git clone --depth=1 https://github.com/google/shaderc
+  - git clone --depth=1 https://github.com/google/glslang             shaderc/third_party/glslang
+  - git clone --depth=1 https://github.com/KhronosGroup/SPIRV-Tools   shaderc/third_party/spirv-tools
+  - git clone --depth=1 https://github.com/KhronosGroup/SPIRV-Headers shaderc/third_party/spirv-tools/external/spirv-headers
+  - mkdir shaderc/build && cd shaderc/build
+  - cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=1 -DSHADERC_SKIP_TESTS=ON -DSPIRV_SKIP_EXECUTABLES=ON ..
+  - ninja libshaderc/libshaderc_combined.a
+  - cd ../.. && mkdir -p target/debug/deps
+  - cp shaderc/build/libshaderc/libshaderc_combined.a target/debug/deps
+
+script:
+  - cargo build --verbose
+  - cargo test --verbose
+
+notifications:
+  email:
+    recipients:
+      - antiagainst@gmail.com
+    on_success: change
+    on_failure: always
