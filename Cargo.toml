@@ -3,6 +3,16 @@ name = "shaderc"
 version = "0.1.0"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 
+description = "Rust bindings for shaderc"
+documentation = "https://docs.rs/shaderc-rs"
+repository = "https://github.com/google/shaderc-rs"
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["shader", "compiler", "spirv", "glsl", "hlsl"]
+
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
 libc = "0.2"
 
