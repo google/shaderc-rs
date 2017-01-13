@@ -4,6 +4,7 @@ shaderc-rs
 [![Version](https://img.shields.io/crates/v/shaderc.svg)](https://crates.io/crates/shaderc)
 [![Documentation](https://docs.rs/shaderc/badge.svg)](https://docs.rs/shaderc)
 [![Build Status](https://travis-ci.org/google/shaderc-rs.svg?branch=master)](https://travis-ci.org/google/shaderc-rs)
+[![Build status](https://ci.appveyor.com/api/projects/status/3la8yk6cgkh4jhu3/branch/master?svg=true)](https://ci.appveyor.com/project/antiagainst/shaderc-rs/branch/master)
 
 Rust bindings for the [shaderc](https://github.com/google/shaderc) library.
 
