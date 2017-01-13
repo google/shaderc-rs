@@ -6,7 +6,7 @@ shaderc-rs
 [![Build Status](https://travis-ci.org/google/shaderc-rs.svg?branch=master)](https://travis-ci.org/google/shaderc-rs)
 [![Build status](https://ci.appveyor.com/api/projects/status/3la8yk6cgkh4jhu3/branch/master?svg=true)](https://ci.appveyor.com/project/antiagainst/shaderc-rs/branch/master)
 
-Rust bindings for the [shaderc](https://github.com/google/shaderc) library.
+Rust bindings for the [shaderc][shaderc] library.
 
 ### Disclaimer
 
@@ -34,6 +34,19 @@ Then add to your crate root:
 ```rust
 extern crate shaderc;
 ```
+
+Documentation
+-------------
+
+shaderc provides the [`Compiler`][doc-compiler] interface to compile GLSL/HLSL
+source code into SPIR-V binary modules or assembly code. It can also assemble
+SPIR-V assembly into binary module. Default compilation behavior can be
+adjusted using [`CompileOptions`][doc-options]. Successful results are kept in
+[`CompilationArtifact`][doc-artifact]s.
+
+Please see
+[![Documentation](https://docs.rs/shaderc/badge.svg)](https://docs.rs/shaderc)
+for detailed documentation.
 
 Example
 -------
@@ -76,4 +89,8 @@ This project is initialized and mainly developed by Lei Zhang
 
 - [ ] include spport
 
+[shaderc]: https://github.com/google/shaderc
+[doc-compiler]: https://docs.rs/shaderc/0.1/shaderc/struct.Compiler.html
+[doc-options]: https://docs.rs/shaderc/0.1/shaderc/struct.CompileOptions.html
+[doc-artifact]: https://docs.rs/shaderc/0.1/shaderc/struct.CompilationArtifact.html
 [me]: https://github.com/antiagainst
