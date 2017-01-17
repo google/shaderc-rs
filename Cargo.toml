@@ -4,7 +4,7 @@ version = "0.1.2"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 
 description = "Rust bindings for shaderc"
-documentation = "https://docs.rs/shaderc-rs"
+documentation = "https://docs.rs/shaderc"
 repository = "https://github.com/google/shaderc-rs"
 readme = "README.md"
 license = "Apache-2.0"
