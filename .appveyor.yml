@@ -19,17 +19,6 @@ install:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV && cargo -vV
 
-before_build:
-  - git clone --depth=1 https://github.com/google/shaderc
-  - git clone --depth=1 https://github.com/google/glslang             shaderc/third_party/glslang
-  - git clone --depth=1 https://github.com/KhronosGroup/SPIRV-Tools   shaderc/third_party/spirv-tools
-  - git clone --depth=1 https://github.com/KhronosGroup/SPIRV-Headers shaderc/third_party/spirv-tools/external/spirv-headers
-  - cd shaderc && mkdir build && cd build
-  - cmake -DSHADERC_SKIP_TESTS=ON -DSPIRV_SKIP_EXECUTABLES=ON ..
-  - cmake --build . --config Release
-  - cd ..\.. && mkdir target && mkdir target\deug && mkdir target\debug\deps
-  - cp shaderc\build\libshaderc\Release\shaderc_combined.lib target\debug\deps
-
 build:
   parallel: true
   verbosity: minimal
