@@ -72,6 +72,11 @@ fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
 }
 
 fn main() {
+    if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
+        println!("cargo:warning=requested to skip building native C++ shaderc");
+        return
+    }
+
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let target_dir = Path::new(&manifest_dir).join("target");
     let shaderc_dir = Path::new(&target_dir).join("native-shaderc");

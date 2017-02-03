@@ -15,6 +15,10 @@ keywords = ["shader", "compiler", "spirv", "glsl", "hlsl"]
 [lib]
 path = "src/lib.rs"
 
+[features]
+default = ["build-native-shaderc"]
+build-native-shaderc = []  # Clone and build the native C++ shaderc project
+
 [dependencies]
 libc = "0.2"
 
