@@ -3,6 +3,8 @@ name = "shaderc"
 version = "0.1.2"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 
+build = "build/build.rs"
+
 description = "Rust bindings for shaderc"
 documentation = "https://docs.rs/shaderc"
 repository = "https://github.com/google/shaderc-rs"
@@ -18,3 +20,6 @@ libc = "0.2"
 
 [dev-dependencies]
 assert_matches = "1.0"
+
+[build-dependencies]
+cmake = "0.1"
