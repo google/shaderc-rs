@@ -16,11 +16,14 @@ code that happens to be owned by Google.
 Usage
 -----
 
-The `shaderc_combined` library (`libshaderc_combined.a` on Unix-like systems)
-is required for proper linking. You can compile it by checking out the shaderc
-project and follow the instructions there. Then place `libshaderc_combined.a`
-at a path that is scanned by the linker (e.g., the `deps` directory within the
-`target` directory).
+This library uses [`build.rs`](build/build.rs) to automatically check out
+and compile a copy of native C++ shaderc and link to the generated artifacts,
+which requires `git`, `cmake`, and `python` existing in the `PATH`.
+To turn off this feature, specify `--no-default-features` when building.
+But then you will need to place a copy of the `shaderc_combined` library
+(`libshaderc_combined.a` on Unix like systems and `shaderc_combined.lib`
+on Windows) to a location that is scanned by the linker (e.g., the `deps`
+directory within the `target` directory).
 
 First add to your `Cargo.toml`:
 
