@@ -522,6 +522,7 @@ pub enum IncludeType {
     Standard
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct ResolvedInclude {
     pub resolved_name: String,
     pub content: String
