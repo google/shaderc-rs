@@ -58,9 +58,12 @@ extern crate libc;
 #[macro_use]
 extern crate assert_matches;
 
-use libc::{c_int, int32_t, uint32_t};
+use libc::{c_int, int32_t, uint32_t, c_void, c_char, size_t};
 use std::{error, fmt, ptr, result, slice, str};
 use std::ffi::{CStr, CString};
+use std::cell::RefCell;
+use std::any::Any;
+use std::panic;
 
 mod ffi;
 
@@ -309,6 +312,21 @@ pub struct Compiler {
     raw: *mut ffi::ShadercCompiler,
 }
 
+fn propagate_panic<F, T>(f: F) -> T where F : FnOnce() -> T {
+    PANIC_ERROR.with(|panic_error| {
+        *panic_error.borrow_mut() = None;
+    });
+    let result = f();
+    let err = PANIC_ERROR.with(|panic_error| {
+        panic_error.borrow_mut().take()
+    });
+    if let Some(err) = err {
+        panic::resume_unwind(err)
+    } else {
+        result
+    }
+}
+
 impl Compiler {
     /// Returns an compiler object that can be used to compile SPIR-V modules.
     ///
@@ -380,16 +398,18 @@ impl Compiler {
                          .expect("cannot convert input_file_name to c string");
         let c_entry_point = CString::new(entry_point_name)
                                 .expect("cannot convert entry_point_name to c string");
-        let result = unsafe {
-            ffi::shaderc_compile_into_spv(self.raw,
-                                          c_source.as_ptr(),
-                                          source_size,
-                                          shader_kind as int32_t,
-                                          c_file.as_ptr(),
-                                          c_entry_point.as_ptr(),
-                                          additional_options.map_or(ptr::null(), |ref o| o.raw))
-        };
-        Compiler::handle_compilation_result(result, true)
+        propagate_panic(|| {
+            let result = unsafe {
+                ffi::shaderc_compile_into_spv(self.raw,
+                                              c_source.as_ptr(),
+                                              source_size,
+                                              shader_kind as int32_t,
+                                              c_file.as_ptr(),
+                                              c_entry_point.as_ptr(),
+                                              additional_options.map_or(ptr::null(), |ref o| o.raw))
+            };
+            Compiler::handle_compilation_result(result, true)
+        })
     }
 
     /// Like `compile_into_spirv` but the result contains SPIR-V assembly text
@@ -411,17 +431,19 @@ impl Compiler {
                          .expect("cannot convert input_file_name to c string");
         let c_entry_point = CString::new(entry_point_name)
                                 .expect("cannot convert entry_point_name to c string");
-        let result = unsafe {
-            ffi::shaderc_compile_into_spv_assembly(self.raw,
-                                                   c_source.as_ptr(),
-                                                   source_size,
-                                                   shader_kind as int32_t,
-                                                   c_file.as_ptr(),
-                                                   c_entry_point.as_ptr(),
-                                                   additional_options.map_or(ptr::null(),
-                                                                             |ref o| o.raw))
-        };
-        Compiler::handle_compilation_result(result, false)
+        propagate_panic(|| {
+            let result = unsafe {
+                ffi::shaderc_compile_into_spv_assembly(self.raw,
+                                                       c_source.as_ptr(),
+                                                       source_size,
+                                                       shader_kind as int32_t,
+                                                       c_file.as_ptr(),
+                                                       c_entry_point.as_ptr(),
+                                                       additional_options.map_or(ptr::null(),
+                                                                                 |ref o| o.raw))
+            };
+            Compiler::handle_compilation_result(result, false)
+        })
     }
 
     /// Like `compile_into_spirv` but the result contains preprocessed source
@@ -438,18 +460,20 @@ impl Compiler {
                          .expect("cannot convert input_file_name to c string");
         let c_entry_point = CString::new(entry_point_name)
                                 .expect("cannot convert entry_point_name to c string");
-        let result = unsafe {
-            ffi::shaderc_compile_into_preprocessed_text(self.raw,
-                                                        c_source.as_ptr(),
-                                                        source_size,
-                                                        // Stage doesn't matter for preprocess
-                                                        ShaderKind::Vertex as int32_t,
-                                                        c_file.as_ptr(),
-                                                        c_entry_point.as_ptr(),
-                                                        additional_options.map_or(ptr::null(),
-                                                                                  |ref o| o.raw))
-        };
-        Compiler::handle_compilation_result(result, false)
+        propagate_panic(|| {
+            let result = unsafe {
+                ffi::shaderc_compile_into_preprocessed_text(self.raw,
+                                                            c_source.as_ptr(),
+                                                            source_size,
+                                                            // Stage doesn't matter for preprocess
+                                                            ShaderKind::Vertex as int32_t,
+                                                            c_file.as_ptr(),
+                                                            c_entry_point.as_ptr(),
+                                                            additional_options.map_or(ptr::null(),
+                                                                                      |ref o| o.raw))
+            };
+            Compiler::handle_compilation_result(result, false)
+        })
     }
 
     /// Assembles the given SPIR-V assembly string `source_assembly` into a
@@ -468,13 +492,15 @@ impl Compiler {
         let source_size = source_assembly.len();
         let c_source = CString::new(source_assembly)
                            .expect("cannot convert source_assembly to c string");
-        let result = unsafe {
-            ffi::shaderc_assemble_into_spv(self.raw,
-                                           c_source.as_ptr(),
-                                           source_size,
-                                           additional_options.map_or(ptr::null(), |ref o| o.raw))
-        };
-        Compiler::handle_compilation_result(result, true)
+        propagate_panic(|| {
+            let result = unsafe {
+                ffi::shaderc_assemble_into_spv(self.raw,
+                                               c_source.as_ptr(),
+                                               source_size,
+                                               additional_options.map_or(ptr::null(), |ref o| o.raw))
+            };
+            Compiler::handle_compilation_result(result, true)
+        })
     }
 }
 
@@ -485,11 +511,27 @@ impl Drop for Compiler {
 }
 
 /// An opaque object managing options to compilation.
-pub struct CompileOptions {
+pub struct CompileOptions<'a> {
     raw: *mut ffi::ShadercCompileOptions,
+    f: Option<Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>>
 }
 
-impl CompileOptions {
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Debug)]
+pub enum IncludeType {
+    Relative,
+    Standard
+}
+
+pub struct ResolvedInclude {
+    pub resolved_name: String,
+    pub content: String
+}
+
+thread_local! {
+    static PANIC_ERROR: RefCell<Option<Box<Any + Send + 'static>>> = RefCell::new(None);
+}
+
+impl<'a> CompileOptions<'a> {
     /// Returns a default-initialized compilation options object.
     ///
     /// The default options are:
@@ -498,12 +540,12 @@ impl CompileOptions {
     ///
     /// A return of `None` indicates that there was an error initializing
     /// the underlying options object.
-    pub fn new() -> Option<CompileOptions> {
+    pub fn new() -> Option<CompileOptions<'a>> {
         let p = unsafe { ffi::shaderc_compile_options_initialize() };
         if p.is_null() {
             None
         } else {
-            Some(CompileOptions { raw: p })
+            Some(CompileOptions { raw: p, f: None })
         }
     }
 
@@ -516,7 +558,7 @@ impl CompileOptions {
         if p.is_null() {
             None
         } else {
-            Some(CompileOptions { raw: p })
+            Some(CompileOptions { raw: p, f: None })
         }
     }
 
@@ -550,6 +592,130 @@ impl CompileOptions {
             ffi::shaderc_compile_options_set_forced_version_profile(self.raw,
                                                                     version as c_int,
                                                                     profile as int32_t)
+        }
+    }
+
+    /// Sets the callback for handling the `#include` directive.
+    ///
+    /// The arguments to the callback are the name of the source being requested,
+    /// the type of include directive (`Relative` for `#include "foo"`, `Standard` for `#include <foo>`),
+    /// the name of the source containing the directive and the current include depth from the original
+    /// source.
+    ///
+    /// The return value of the callback should be `Ok` if the source was successfully found,
+    /// and an `Err` containing some suitable error message to display otherwise.
+    ///
+    /// Behaviour note: If `Err` is returned for a `Relative` include request, the callback will be
+    /// tried again with `Standard`, which is similar to include directive behaviour in C.
+    pub fn set_include_callback<F>(&mut self, f: F)
+        where F : Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a
+    {
+        use std::ffi::{CString, CStr};
+        use std::mem;
+
+        let f = Box::new(f);
+        let f_ptr = &*f as *const F;
+        self.f = Some(f as Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>);
+        unsafe {
+            ffi::shaderc_compile_options_set_include_callbacks(self.raw, resolver::<'a, F>, releaser, f_ptr as *const c_void as *mut c_void);
+        }
+
+        struct OkResultWrapper {
+            source_name: CString,
+            content: CString,
+            wrapped: ffi::shaderc_include_result
+        }
+
+        struct ErrResultWrapper {
+            error_message: CString,
+            wrapped: ffi::shaderc_include_result
+        }
+
+        extern "C" fn resolver<'a, F>(user_data: *mut c_void,
+                               requested_source: *const c_char,
+                               type_: c_int,
+                               requesting_source: *const c_char,
+                               include_depth: size_t) -> *mut ffi::shaderc_include_result
+            where F : Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a
+        {
+            let result = panic::catch_unwind(move || {
+                let f = unsafe { &*(user_data as *const F) };
+                let requested_source = unsafe { CStr::from_ptr(requested_source).to_string_lossy() };
+                let type_ = match type_ {
+                    0 => IncludeType::Relative,
+                    1 => IncludeType::Standard,
+                    x => panic!("Unknown Include Type returned from libshaderc: {}", x)
+                };
+                let requesting_source = unsafe { CStr::from_ptr(requesting_source).to_string_lossy() };
+                match f(&requested_source, type_, &requesting_source, include_depth) {
+                    Ok(ResolvedInclude { resolved_name, content }) => {
+                        let mut result = Box::new(OkResultWrapper {
+                            source_name: CString::new(resolved_name).expect("Include callback: Could not convert resolved source name to a c string."),
+                            content: CString::new(content).expect("Include callback: Could not convert content string to a c string."),
+                            wrapped: unsafe { mem::zeroed() },
+                        });
+                        result.wrapped = ffi::shaderc_include_result {
+                            source_name: result.source_name.as_ptr(),
+                            source_name_length: result.source_name.as_bytes().len(),
+                            content: result.content.as_ptr(),
+                            content_length: result.content.as_bytes().len(),
+                            user_data: &mut *result as *mut OkResultWrapper as *mut c_void,
+                        };
+                        let r = &mut result.wrapped as *mut ffi::shaderc_include_result;
+                        mem::forget(result);
+                        r
+                    }
+                    Err(error_message) => {
+                        let mut result = Box::new(ErrResultWrapper {
+                            error_message: CString::new(error_message).expect("Include callback: Could not convert error message to a c string."),
+                            wrapped: unsafe { mem::zeroed() }
+                        });
+                        result.wrapped = ffi::shaderc_include_result {
+                            source_name: CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
+                            source_name_length: 0,
+                            content: result.error_message.as_ptr(),
+                            content_length: result.error_message.as_bytes().len(),
+                            user_data: &mut *result as *mut ErrResultWrapper as *mut c_void,
+                        };
+                        let r = &mut result.wrapped as *mut ffi::shaderc_include_result;
+                        mem::forget(result);
+                        r
+                    }
+                }
+            });
+            match result {
+                Ok(r) => r,
+                Err(e) => {
+                    PANIC_ERROR.with(|panic_error| {
+                        *panic_error.borrow_mut() = Some(e);
+                    });
+                    let mut result = Box::new(ErrResultWrapper {
+                        error_message: CString::new("").unwrap(),
+                        wrapped: unsafe { mem::zeroed() }
+                    });
+                    result.wrapped = ffi::shaderc_include_result {
+                        source_name: CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
+                        source_name_length: 0,
+                        content: result.error_message.as_ptr(),
+                        content_length: 0,
+                        user_data: &mut *result as *mut ErrResultWrapper as *mut c_void,
+                    };
+                    let r = &mut result.wrapped as *mut ffi::shaderc_include_result;
+                    mem::forget(result);
+                    r
+                }
+            }
+        }
+
+        extern "C" fn releaser(_: *mut c_void, include_result: *mut ffi::shaderc_include_result) {
+            let user_data = unsafe { &*include_result }.user_data;
+            if unsafe { &*include_result }.source_name_length == 0 {
+                let wrapper = unsafe { Box::from_raw(user_data as *mut ErrResultWrapper) };
+                drop(wrapper);
+            } else {
+                let wrapper = unsafe { Box::from_raw(user_data as *mut OkResultWrapper) };
+                drop(wrapper);
+            }
         }
     }
 
@@ -619,7 +785,7 @@ impl CompileOptions {
     }
 }
 
-impl Drop for CompileOptions {
+impl<'a> Drop for CompileOptions<'a> {
     fn drop(&mut self) {
         unsafe { ffi::shaderc_compile_options_release(self.raw) }
     }
@@ -989,6 +1155,79 @@ void main() {
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
                             if s.contains("error: 'gl_ClipDistance' : undeclared identifier"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Panic in include resolver!")]
+    fn test_include_directive_panic() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_include_callback(|_, _, _, _| {
+            panic!("Panic in include resolver!")
+        });
+        drop(c.compile_into_spirv_assembly(
+            r#"
+            #version 400
+            #include "foo.glsl"
+            "#,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options)));
+    }
+
+    #[test]
+    fn test_include_directive_err() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_include_callback(|name, _, _, _| {
+            Err(format!("Couldn't find header \"{}\"", name))
+        });
+        let result = c.compile_into_spirv_assembly(
+            r#"
+            #version 400
+            #include "foo.glsl"
+            "#,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options));
+        assert!(result.is_err());
+        assert_matches!(result.err(),
+            Some(Error::CompilationError(1, ref s))
+            if s.contains("Couldn't find header \"foo.glsl\""));
+    }
+
+    #[test]
+    fn test_include_directive_success() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_include_callback(|name, type_, _, _| {
+            if name == "foo.glsl" && type_ == IncludeType::Relative {
+                Ok(ResolvedInclude {
+                    resolved_name: "std/foo.glsl".to_string(),
+                    content: r#"
+                    #ifndef FOO_H
+                    #define FOO_H
+                    void main() {}
+                    #endif
+                    "#.to_string(),
+                })
+            } else {
+                Err(format!("Couldn't find header \"{}\"", name))
+            }
+        });
+        let result = c.compile_into_spirv_assembly(
+            r#"
+            #version 400
+            #include "foo.glsl"
+            #include "foo.glsl"
+            "#,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options));
+        assert_matches!(result.err(), None);
     }
 
     #[test]
