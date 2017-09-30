@@ -32,7 +32,7 @@ static SPIRV_HEADERS_COMMIT: &'static str = "77240d9e86c6ff135f6de8c7b89a0099a2d
 fn git_clone_or_update(project: &str, url: &str, commit: &str, dir: &PathBuf) {
     if dir.as_path().exists() {
         let status = Command::new("git")
-            .arg("pull")
+            .arg("fetch")
             .current_dir(dir)
             .status()
             .expect("failed to execute git pull");
