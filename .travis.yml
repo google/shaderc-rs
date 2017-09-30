@@ -17,16 +17,6 @@ branches:
   only:
     - master
 
-addons:
-  apt:
-    packages:
-      - ninja-build
-      - clang-3.6
-
-install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install ninja; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CC=clang-3.6 CXX=clang++-3.6; fi
-
 script:
   - cargo build --verbose
   - cargo test --verbose
