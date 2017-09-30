@@ -113,6 +113,6 @@ fn main() {
 
     lib_path.push("lib");
 
-    println!("cargo:rustc-link-lib=static=shaderc_combined");
     println!("cargo:rustc-link-search=native={}", lib_path.display());
+    println!("cargo:rustc-link-lib=dylib=shaderc_shared");
 }
