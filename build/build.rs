@@ -23,7 +23,13 @@ static GLSLANG_REPO: &'static str = "https://github.com/google/glslang";
 static SPIRV_TOOLS_REPO: &'static str = "https://github.com/KhronosGroup/SPIRV-Tools";
 static SPIRV_HEADERS_REPO: &'static str = "https://github.com/KhronosGroup/SPIRV-Headers";
 
-fn git_clone_or_update(project: &str, url: &str, dir: &PathBuf) {
+// Updated on 2017-09-30
+static SHADERC_COMMIT: &'static str = "c8ba3e4694ff554f95000ec35e6e55f2ba637fb3";
+static GLSLANG_COMMIT: &'static str = "44dd6a00c388ba09f7ac64a3921b4717a89f949c";
+static SPIRV_TOOLS_COMMIT: &'static str = "17a843c6b0ac39edce3ca45246b78c8f47c7ebee";
+static SPIRV_HEADERS_COMMIT: &'static str = "77240d9e86c6ff135f6de8c7b89a0099a2d90e16";
+
+fn git_clone_or_update(project: &str, url: &str, commit: &str, dir: &PathBuf) {
     if dir.as_path().exists() {
         let status = Command::new("git")
             .arg("pull")
@@ -41,6 +47,15 @@ fn git_clone_or_update(project: &str, url: &str, dir: &PathBuf) {
         if !status.success() {
             panic!("git clone {} failed", project)
         }
+    }
+
+    let status = Command::new("git")
+        .args(&["checkout", commit])
+        .current_dir(dir)
+        .status()
+        .expect("failed to execute git checkout");
+    if !status.success() {
+        panic!("git checkout {} failed", commit)
     }
 }
 
@@ -68,10 +83,10 @@ fn main() {
     let external_dir = Path::new(&spirv_tools_dir).join("external");
     let spirv_headers_dir = Path::new(&external_dir).join("spirv-headers");
 
-    git_clone_or_update("shaderc", SHADERC_REPO, &shaderc_dir);
-    git_clone_or_update("glslang", GLSLANG_REPO, &glslang_dir);
-    git_clone_or_update("spirv-tools", SPIRV_TOOLS_REPO, &spirv_tools_dir);
-    git_clone_or_update("spirv-headers", SPIRV_HEADERS_REPO, &spirv_headers_dir);
+    git_clone_or_update("shaderc", SHADERC_REPO, SHADERC_COMMIT, &shaderc_dir);
+    git_clone_or_update("glslang", GLSLANG_REPO, GLSLANG_COMMIT, &glslang_dir);
+    git_clone_or_update("spirv-tools", SPIRV_TOOLS_REPO, SPIRV_TOOLS_COMMIT, &spirv_tools_dir);
+    git_clone_or_update("spirv-headers", SPIRV_HEADERS_REPO, SPIRV_HEADERS_COMMIT, &spirv_headers_dir);
 
     let mut lib_path = build_shaderc(&shaderc_dir);
     lib_path.push("lib");
