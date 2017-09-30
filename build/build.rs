@@ -68,11 +68,28 @@ fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
             .build()
 }
 
+fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
+    cmake::Config::new(shaderc_dir)
+            .profile("Release")
+            .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+            .define("SPIRV_SKIP_EXECUTABLES", "ON")
+            .define("SHADERC_SKIP_TESTS", "ON")
+            // cmake-rs tries to be clever on Windows by injecting several
+            // C/C++ flags, which causes problems. So I have to manually
+            // define CMAKE_*_FLAGS_* here to suppress that.
+            .define("CMAKE_C_FLAGS", " /nologo /EHsc")
+            .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
+            .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
+            .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
+            .build()
+}
+
 fn main() {
     if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
         println!("cargo:warning=requested to skip building native C++ shaderc");
         return
     }
+    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let target_dir = Path::new(&manifest_dir).join("target");
@@ -88,7 +105,12 @@ fn main() {
     git_clone_or_update("spirv-tools", SPIRV_TOOLS_REPO, SPIRV_TOOLS_COMMIT, &spirv_tools_dir);
     git_clone_or_update("spirv-headers", SPIRV_HEADERS_REPO, SPIRV_HEADERS_COMMIT, &spirv_headers_dir);
 
-    let mut lib_path = build_shaderc(&shaderc_dir);
+    let mut lib_path = if target_env == "msvc" {
+        build_shaderc_msvc(&shaderc_dir)
+    } else {
+        build_shaderc(&shaderc_dir)
+    };
+
     lib_path.push("lib");
 
     println!("cargo:rustc-link-lib=static=shaderc_combined");
