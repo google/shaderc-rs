@@ -753,11 +753,10 @@ mod tests {
     static TWO_ERROR: &'static str = "#version 310 es\n #error one\n #error two\n void main() {}";
     static TWO_ERROR_MSG: &'static str = "shader.glsl:2: error: '#error' : one\n\
                                           shader.glsl:3: error: '#error' : two\n";
-    static TWO_WARNING: &'static str = "#version 140\n\
-                                        attribute float x;\n attribute float y;\n void main() {}";
-    static TWO_WARNING_MSG: &'static str = "\
+    static ONE_WARNING: &'static str = "#version 400\n\
+                                        layout(location = 0) attribute float x;\n void main() {}";
+    static ONE_WARNING_MSG: &'static str = "\
 shader.glsl:2: warning: attribute deprecated in version 130; may be removed in future release
-shader.glsl:3: warning: attribute deprecated in version 130; may be removed in future release
 ";
     static DEBUG_INFO: &'static str = "#version 140\n \
                                        void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
@@ -997,7 +996,7 @@ void main() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_suppress_warnings();
-        let result = c.compile_into_spirv(TWO_WARNING,
+        let result = c.compile_into_spirv(ONE_WARNING,
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
@@ -1011,14 +1010,14 @@ void main() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_warnings_as_errors();
-        let result = c.compile_into_spirv(TWO_WARNING,
+        let result = c.compile_into_spirv(ONE_WARNING,
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
                                           Some(&options));
         assert!(result.is_err());
         assert_matches!(result.err(),
-                        Some(Error::CompilationError(2, ref s))
+                        Some(Error::CompilationError(1, ref s))
                             if s.contains("error: attribute deprecated in version 130;"));
     }
 
@@ -1149,14 +1148,14 @@ void main() {
     #[test]
     fn test_warning() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv(TWO_WARNING,
+        let result = c.compile_into_spirv(ONE_WARNING,
                                           ShaderKind::Vertex,
                                           "shader.glsl",
                                           "main",
                                           None)
                       .unwrap();
-        assert_eq!(2, result.get_num_warnings());
-        assert_eq!(TWO_WARNING_MSG.to_string(), result.get_warning_messages());
+        assert_eq!(1, result.get_num_warnings());
+        assert_eq!(ONE_WARNING_MSG.to_string(), result.get_warning_messages());
     }
 
     #[test]
