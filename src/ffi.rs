@@ -18,8 +18,6 @@ pub enum ShadercCompiler {}
 pub enum ShadercCompileOptions {}
 pub enum ShadercCompilationResult {}
 
-#[cfg_attr(target_os = "linux", link(name = "stdc++"))]
-#[cfg_attr(target_os = "macos", link(name = "c++"))]
 extern "C" {
     pub fn shaderc_compiler_initialize() -> *mut ShadercCompiler;
     pub fn shaderc_compiler_release(compiler: *mut ShadercCompiler);
