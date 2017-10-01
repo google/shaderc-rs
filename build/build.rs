@@ -89,6 +89,8 @@ fn main() {
         println!("cargo:warning=requested to skip building native C++ shaderc");
         return
     }
+
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -114,5 +116,9 @@ fn main() {
     lib_path.push("lib");
 
     println!("cargo:rustc-link-search=native={}", lib_path.display());
-    println!("cargo:rustc-link-lib=dylib=shaderc_shared");
+    if target_os == "windows" {
+        println!("cargo:rustc-link-lib=static=shaderc_combined");
+    } else {
+        println!("cargo:rustc-link-lib=dylib=shaderc_shared");
+    }
 }
