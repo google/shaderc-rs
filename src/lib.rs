@@ -614,14 +614,16 @@ impl<'a> CompileOptions<'a> {
     /// source.
     ///
     /// The return value of the callback should be `Ok` if the source was successfully found,
-    /// and an `Err` containing some suitable error message to display otherwise.
+    /// and an `Err` containing some suitable error message to display otherwise. If the result is
+    /// `Ok`, the `resolved_name` of the `ResolvedInclude` must be non-empty. All strings returned
+    /// from the callback must be convertible to `CString`s, i.e. they must not contain the null
+    /// character. If these conditions are not met compilation will panic.
     ///
     /// Behaviour note: If `Err` is returned for a `Relative` include request, the callback will be
     /// tried again with `Standard`, which is similar to include directive behaviour in C.
     pub fn set_include_callback<F>(&mut self, f: F)
         where F : Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a
     {
-        use std::ffi::{CString, CStr};
         use std::mem;
 
         let f = Box::new(f);
@@ -655,17 +657,17 @@ impl<'a> CompileOptions<'a> {
                 let type_ = match type_ {
                     0 => IncludeType::Relative,
                     1 => IncludeType::Standard,
-                    x => panic!("Unknown Include Type returned from libshaderc: {}", x)
+                    x => panic!("include callback: unknown include type returned from libshaderc: {}", x)
                 };
                 let requesting_source = unsafe { CStr::from_ptr(requesting_source).to_string_lossy() };
                 match f(&requested_source, type_, &requesting_source, include_depth) {
                     Ok(ResolvedInclude { resolved_name, content }) => {
                         if resolved_name.len() == 0 {
-                            panic!("Include callback: empty strings for resolved include names not allowed.");
+                            panic!("include callback: empty strings for resolved include names not allowed");
                         }
                         let mut result = Box::new(OkResultWrapper {
-                            source_name: CString::new(resolved_name).expect("Include callback: Could not convert resolved source name to a c string."),
-                            content: CString::new(content).expect("Include callback: Could not convert content string to a c string."),
+                            source_name: CString::new(resolved_name).expect("include callback: could not convert resolved source name to a c string"),
+                            content: CString::new(content).expect("include callback: could not convert content string to a c string"),
                             wrapped: unsafe { mem::zeroed() },
                         });
                         result.wrapped = ffi::shaderc_include_result {
@@ -681,7 +683,7 @@ impl<'a> CompileOptions<'a> {
                     }
                     Err(error_message) => {
                         let mut result = Box::new(ErrResultWrapper {
-                            error_message: CString::new(error_message).expect("Include callback: Could not convert error message to a c string."),
+                            error_message: CString::new(error_message).expect("include callback: could not convert error message to a c string"),
                             wrapped: unsafe { mem::zeroed() }
                         });
                         result.wrapped = ffi::shaderc_include_result {
