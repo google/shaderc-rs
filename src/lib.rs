@@ -516,15 +516,25 @@ pub struct CompileOptions<'a> {
     f: Option<Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>>
 }
 
+/// Identifies the type of include directive. `Relative` is for include directives of the form
+/// `#include "..."`, and `Standard` is for include directives of the form `#include <...>`.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Debug)]
 pub enum IncludeType {
     Relative,
     Standard
 }
 
+/// A representation of a successfully resolved include directive, containing the name of the include
+/// and its contents.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct ResolvedInclude {
+    /// A name uniquely identifying the resolved include. Typically the absolute path of the file.
+    ///
+    /// This name is used in error messages and to disambiguate different includes.
+    ///
+    /// This field must not be empty. Compilation will panic if an empty string is provided.
     pub resolved_name: String,
+    /// The content of the include to substitute the include directive with.
     pub content: String
 }
 
@@ -650,6 +660,9 @@ impl<'a> CompileOptions<'a> {
                 let requesting_source = unsafe { CStr::from_ptr(requesting_source).to_string_lossy() };
                 match f(&requested_source, type_, &requesting_source, include_depth) {
                     Ok(ResolvedInclude { resolved_name, content }) => {
+                        if resolved_name.len() == 0 {
+                            panic!("Include callback: empty strings for resolved include names not allowed.");
+                        }
                         let mut result = Box::new(OkResultWrapper {
                             source_name: CString::new(resolved_name).expect("Include callback: Could not convert resolved source name to a c string."),
                             content: CString::new(content).expect("Include callback: Could not convert content string to a c string."),
