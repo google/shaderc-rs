@@ -11,12 +11,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![allow(non_camel_case_types)]
 
-use libc::{c_char, c_int, int32_t, uint32_t, size_t};
+use libc::{c_char, c_int, int32_t, uint32_t, size_t, c_void};
 
 pub enum ShadercCompiler {}
 pub enum ShadercCompileOptions {}
 pub enum ShadercCompilationResult {}
+
+#[repr(C)]
+pub struct shaderc_include_result {
+    pub source_name: *const c_char,
+    pub source_name_length: size_t,
+    pub content: *const c_char,
+    pub content_length: size_t,
+    pub user_data: *mut c_void
+}
+
+type shaderc_include_resolve_fn = extern "C" fn(
+    user_data: *mut c_void,
+    requested_source: *const c_char,
+    type_: c_int,
+    requesting_source: *const c_char,
+    include_depth: size_t) -> *mut shaderc_include_result;
+
+type shaderc_include_result_release_fn = extern "C" fn(user_data: *mut c_void, include_result: *mut shaderc_include_result);
 
 extern "C" {
     pub fn shaderc_compiler_initialize() -> *mut ShadercCompiler;
@@ -70,6 +89,10 @@ extern "C" {
     pub fn shaderc_compile_options_set_forced_version_profile(options: *mut ShadercCompileOptions,
                                                               version: c_int,
                                                               profile: int32_t);
+    pub fn shaderc_compile_options_set_include_callbacks(options: *mut ShadercCompileOptions,
+                                                         resolver: shaderc_include_resolve_fn,
+                                                         result_releaser: shaderc_include_result_release_fn,
+                                                         user_data: *mut c_void);
     pub fn shaderc_compile_options_set_suppress_warnings(options: *mut ShadercCompileOptions);
     pub fn shaderc_compile_options_set_warnings_as_errors(options: *mut ShadercCompileOptions);
     pub fn shaderc_compile_options_set_target_env(options: *mut ShadercCompileOptions,
