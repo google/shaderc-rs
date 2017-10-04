@@ -88,10 +88,6 @@ This project is licensed under the [Apache 2](LICENSE) license. Please see
 This project is initialized and mainly developed by Lei Zhang
 ([@antiagainst][me]).
 
-### TODO
-
-- [ ] include spport
-
 [shaderc]: https://github.com/google/shaderc
 [doc-compiler]: https://docs.rs/shaderc/0.2/shaderc/struct.Compiler.html
 [doc-options]: https://docs.rs/shaderc/0.2/shaderc/struct.CompileOptions.html
