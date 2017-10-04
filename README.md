@@ -29,7 +29,7 @@ First add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rspirv = "0.2"
+shaderc = "0.3"
 ```
 
 Then add to your crate root:
@@ -89,7 +89,7 @@ This project is initialized and mainly developed by Lei Zhang
 ([@antiagainst][me]).
 
 [shaderc]: https://github.com/google/shaderc
-[doc-compiler]: https://docs.rs/shaderc/0.2/shaderc/struct.Compiler.html
-[doc-options]: https://docs.rs/shaderc/0.2/shaderc/struct.CompileOptions.html
-[doc-artifact]: https://docs.rs/shaderc/0.2/shaderc/struct.CompilationArtifact.html
+[doc-compiler]: https://docs.rs/shaderc/0.3/shaderc/struct.Compiler.html
+[doc-options]: https://docs.rs/shaderc/0.3/shaderc/struct.CompileOptions.html
+[doc-artifact]: https://docs.rs/shaderc/0.3/shaderc/struct.CompilationArtifact.html
 [me]: https://github.com/antiagainst
