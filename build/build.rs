@@ -18,7 +18,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn git_submodule_update(dir: &PathBuf) {
+fn git_submodule_update<P: AsRef<Path>>(dir: P) {
     let status = Command::new("git")
         .args(&["submodule", "update", "--init"])
         .current_dir(dir)
@@ -66,7 +66,7 @@ fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let shaderc_dir = Path::new(&manifest_dir).join("build");
 
-    git_submodule_update(&shaderc_dir);
+    git_submodule_update(&manifest_dir);
 
     let mut lib_path = if target_env == "msvc" {
         build_shaderc_msvc(&shaderc_dir)
