@@ -160,6 +160,27 @@ pub enum SourceLanguage {
     HLSL,
 }
 
+/// Resource kinds.
+///
+/// In Vulkan, resources are bound to the pipeline via descriptors with
+/// numbered bindings and sets.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ResourceKind {
+    /// Image and image buffer.
+    Image,
+    /// Pure sampler.
+    Sampler,
+    /// Sampled texture in GLSL, and Shader Resource View in HLSL.
+    Texture,
+    /// Uniform Buffer Object (UBO) in GLSL. cbuffer in HLSL.
+    Buffer,
+    /// Shader Storage Buffer Object (SSBO) in GLSL.
+    StorageBuffer,
+    /// Unordered Access View in HLSL. (Writable storage image or storage buffer.)
+    UnorderedAccessView,
+}
+
 /// Shader kind.
 ///
 /// * The `<stage>` enumerants are forced shader kinds, which force the
@@ -742,6 +763,84 @@ impl<'a> CompileOptions<'a> {
         }
     }
 
+    /// Sets whether the compiler should automatically assign bindings to uniforms
+    /// that aren't already explicitly bound in the shader source.
+    pub fn set_auto_bind_uniforms(&mut self, auto_bind: bool) {
+        unsafe {
+            ffi::shaderc_compile_options_set_auto_bind_uniforms(self.raw, auto_bind);
+        }
+    }
+
+    /// Sets whether the compiler should use HLSL IO mapping rules for bindings.
+    ///
+    /// Defaults to false.
+    pub fn set_hlsl_io_mapping(&mut self, hlsl_iomap: bool) {
+        unsafe {
+            ffi::shaderc_compile_options_set_hlsl_io_mapping(self.raw, hlsl_iomap);
+        }
+    }
+
+    /// Sets whether the compiler should determine block member offsets using HLSL
+    /// packing rules instead of standard GLSL rules.
+    ///
+    /// Defaults to false. Only affects GLSL compilation. HLSL rules are always
+    /// used when compiling HLSL.
+    pub fn set_hlsl_offsets(&mut self, hlsl_offsets: bool) {
+        unsafe {
+            ffi::shaderc_compile_options_set_hlsl_offsets(self.raw, hlsl_offsets);
+        }
+    }
+
+    /// Sets the base binding number used for for a resource type when automatically
+    /// assigning bindings.
+    ///
+    /// For GLSL compilation, sets the lowest automatically assigned number.
+    /// For HLSL compilation, the regsiter number assigned to the resource is added
+    /// to this specified base.
+    pub fn set_binding_base(&mut self, resource_kind: ResourceKind, base: u32) {
+        unsafe {
+            ffi::shaderc_compile_options_set_binding_base(self.raw, resource_kind as int32_t, base);
+        }
+    }
+
+    /// Like `set_binding_base`, but only takes effect when compiling the given shader stage.
+    pub fn set_binding_base_for_stage(&mut self,
+                                      shader_kind: ShaderKind,
+                                      resource_kind: ResourceKind,
+                                      base: u32) {
+        unsafe {
+            ffi::shaderc_compile_options_set_binding_base_for_stage(
+                self.raw, shader_kind as int32_t, resource_kind as int32_t, base);
+        }
+    }
+
+    /// Sets a descriptor set and binding for an HLSL register in all shader stages.
+    pub fn set_hlsl_register_set_and_binding(&mut self, register: &str, set: &str, binding: &str) {
+        let c_register = CString::new(register).expect("cannot convert string to c string");
+        let c_set = CString::new(set).expect("cannot convert string to c string");
+        let c_binding = CString::new(binding).expect("cannot convert string to c string");
+        unsafe {
+            ffi::shaderc_compile_options_set_hlsl_register_set_and_binding(
+                self.raw, c_register.as_ptr(), c_set.as_ptr(), c_binding.as_ptr());
+        }
+    }
+
+    /// Like `set_hlsl_register_set_and_binding`, but only takes effect when compiling
+    /// the given shader stage.
+    pub fn set_hlsl_register_set_and_binding_for_stage(&mut self,
+                                                       kind: ShaderKind,
+                                                       register: &str,
+                                                       set: &str,
+                                                       binding: &str) {
+        let c_register = CString::new(register).expect("cannot convert string to c string");
+        let c_set = CString::new(set).expect("cannot convert string to c string");
+        let c_binding = CString::new(binding).expect("cannot convert string to c string");
+        unsafe {
+            ffi::shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
+                self.raw, kind as int32_t, c_register.as_ptr(), c_set.as_ptr(), c_binding.as_ptr());
+        }
+    }
+
     /// Adds a predefined macro to the compilation options.
     ///
     /// This has the same effect as passing `-Dname=value` to the command-line
@@ -973,6 +1072,27 @@ void main() {
                OpReturn
                OpFunctionEnd
 ";
+
+    static UNIFORMS_NO_BINDINGS: &'static str = "\
+#version 450
+#extension GL_ARB_sparse_texture2 : enable
+uniform texture2D my_tex;
+uniform sampler my_sam;
+layout(rgba32f) uniform image2D my_img;
+layout(rgba32f) uniform imageBuffer my_imbuf;
+uniform block { float x; float y; } my_ubo;
+void main() {
+  texture(sampler2D(my_tex,my_sam),vec2(1.0));
+  vec4 t;
+  sparseImageLoadARB(my_img,ivec2(0),t);
+  imageLoad(my_imbuf,42);
+  float x = my_ubo.x;
+}";
+
+    static GLSL_WEIRD_PACKING: &'static str = "\
+#version 450
+buffer B { float x; vec3 foo; } my_ssbo;
+void main() { my_ssbo.x = 1.0; }";
 
     #[test]
     fn test_compile_vertex_shader_into_spirv() {
@@ -1373,6 +1493,136 @@ void main() {
                                      "main",
                                      Some(&options))
                  .is_err());
+    }
+
+    #[test]
+    fn test_compile_options_set_auto_bind_uniforms_false() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_auto_bind_uniforms(false);
+        let result = c.compile_into_spirv_assembly(
+            UNIFORMS_NO_BINDINGS,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(!result.contains("OpDecorate %my_tex Binding"));
+        assert!(!result.contains("OpDecorate %my_sam Binding"));
+        assert!(!result.contains("OpDecorate %my_img Binding"));
+        assert!(!result.contains("OpDecorate %my_imbuf Binding"));
+        assert!(!result.contains("OpDecorate %my_ubo Binding"));
+    }
+
+    #[test]
+    fn test_compile_options_set_auto_bind_uniforms_true() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_auto_bind_uniforms(true);
+        let result = c.compile_into_spirv_assembly(
+            UNIFORMS_NO_BINDINGS,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(result.contains("OpDecorate %my_tex Binding 0"));
+        assert!(result.contains("OpDecorate %my_sam Binding 1"));
+        assert!(result.contains("OpDecorate %my_img Binding 2"));
+        assert!(result.contains("OpDecorate %my_imbuf Binding 3"));
+        assert!(result.contains("OpDecorate %my_ubo Binding 4"));
+    }
+
+    #[test]
+    fn test_compile_options_set_hlsl_offsets_false() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_hlsl_offsets(false);
+        let result = c.compile_into_spirv_assembly(
+            GLSL_WEIRD_PACKING,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(result.contains("OpMemberDecorate %B 1 Offset 16"));
+    }
+
+    #[test]
+    fn test_compile_options_set_hlsl_offsets_true() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_hlsl_offsets(true);
+        let result = c.compile_into_spirv_assembly(
+            GLSL_WEIRD_PACKING,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(result.contains("OpMemberDecorate %B 1 Offset 4"));
+    }
+
+    #[test]
+    fn test_compile_options_set_binding_base() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_auto_bind_uniforms(true);
+        options.set_binding_base(ResourceKind::Image, 44);
+        let result = c.compile_into_spirv_assembly(
+            UNIFORMS_NO_BINDINGS,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(result.contains("OpDecorate %my_tex Binding 0"));
+        assert!(result.contains("OpDecorate %my_sam Binding 1"));
+        assert!(result.contains("OpDecorate %my_img Binding 44"));
+        assert!(result.contains("OpDecorate %my_imbuf Binding 45"));
+        assert!(result.contains("OpDecorate %my_ubo Binding 2"));
+    }
+
+    #[test]
+    fn test_compile_options_set_binding_base_for_stage_effective() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_auto_bind_uniforms(true);
+        options.set_binding_base_for_stage(ShaderKind::Vertex,
+                                           ResourceKind::Texture, 100);
+        let result = c.compile_into_spirv_assembly(
+            UNIFORMS_NO_BINDINGS,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(result.contains("OpDecorate %my_tex Binding 100"));
+        assert!(result.contains("OpDecorate %my_sam Binding 0"));
+        assert!(result.contains("OpDecorate %my_img Binding 1"));
+        assert!(result.contains("OpDecorate %my_imbuf Binding 2"));
+        assert!(result.contains("OpDecorate %my_ubo Binding 3"));
+    }
+
+    #[test]
+    fn test_compile_options_set_binding_base_for_stage_ignore() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_auto_bind_uniforms(true);
+        options.set_binding_base_for_stage(ShaderKind::Fragment,
+                                           ResourceKind::Texture, 100);
+        let result = c.compile_into_spirv_assembly(
+            UNIFORMS_NO_BINDINGS,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap().as_text();
+        assert!(result.contains("OpDecorate %my_tex Binding 0"));
+        assert!(result.contains("OpDecorate %my_sam Binding 1"));
+        assert!(result.contains("OpDecorate %my_img Binding 2"));
+        assert!(result.contains("OpDecorate %my_imbuf Binding 3"));
+        assert!(result.contains("OpDecorate %my_ubo Binding 4"));
     }
 
     #[test]
