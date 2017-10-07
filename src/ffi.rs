@@ -101,6 +101,42 @@ extern "C" {
     pub fn shaderc_compile_options_set_limit(options: *mut ShadercCompileOptions,
                                              limit: int32_t,
                                              value: c_int);
+    pub fn shaderc_compile_options_set_auto_bind_uniforms(
+        options: *mut ShadercCompileOptions,
+        auto_bind: bool,
+    );
+    pub fn shaderc_compile_options_set_hlsl_io_mapping(
+        options: *mut ShadercCompileOptions,
+        hlsl_iomap: bool,
+    );
+    pub fn shaderc_compile_options_set_hlsl_offsets(
+        options: *mut ShadercCompileOptions,
+        hlsl_offsets: bool,
+    );
+    pub fn shaderc_compile_options_set_binding_base(
+        options: *mut ShadercCompileOptions,
+        resource_kind: c_int,
+        base: uint32_t,
+    );
+    pub fn shaderc_compile_options_set_binding_base_for_stage(
+        options: *mut ShadercCompileOptions,
+        shader_kind: c_int,
+        resource_kind: c_int,
+        base: uint32_t,
+    );
+    pub fn shaderc_compile_options_set_hlsl_register_set_and_binding(
+        options: *mut ShadercCompileOptions,
+        register: *const c_char,
+        set: *const c_char,
+        binding: *const c_char,
+    );
+    pub fn shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
+        options: *mut ShadercCompileOptions,
+        shader_kind: c_int,
+        register: *const c_char,
+        set: *const c_char,
+        binding: *const c_char,
+    );
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> int32_t;
