@@ -16,18 +16,6 @@ extern crate cmake;
 
 use std::env;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-
-fn git_submodule_update<P: AsRef<Path>>(dir: P) {
-    let status = Command::new("git")
-        .args(&["submodule", "update", "--init"])
-        .current_dir(dir)
-        .status()
-        .expect("cannot execute git submodule");
-    if !status.success() {
-        panic!("git submodule update --init failed")
-    }
-}
 
 fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
         cmake::Config::new(shaderc_dir)
@@ -65,8 +53,6 @@ fn main() {
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let shaderc_dir = Path::new(&manifest_dir).join("build");
-
-    git_submodule_update(&manifest_dir);
 
     let mut lib_path = if target_env == "msvc" {
         build_shaderc_msvc(&shaderc_dir)
