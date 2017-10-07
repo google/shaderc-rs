@@ -23,6 +23,9 @@ build:
   parallel: true
   verbosity: minimal
 
+before_build:
+  - git submodule update --init
+
 build_script:
   - cargo build --verbose
 
