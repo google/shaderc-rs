@@ -21,9 +21,9 @@ and compile a copy of native C++ shaderc and link to the generated artifacts,
 which requires `git`, `cmake`, and `python` existing in the `PATH`.
 To turn off this feature, specify `--no-default-features` when building.
 But then you will need to place a copy of the `shaderc_combined` library
-(`libshaderc_combined.a` on Unix like systems and `shaderc_combined.lib`
-on Windows) to a location that is scanned by the linker (e.g., the `deps`
-directory within the `target` directory).
+(on Windows) or the `shaderc_shared` library (on Linux and macOS) to a location
+that is scanned by the linker (e.g., the `deps` directory within the `target`
+directory).
 
 First add to your `Cargo.toml`:
 
