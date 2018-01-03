@@ -348,6 +348,27 @@ fn propagate_panic<F, T>(f: F) -> T where F : FnOnce() -> T {
     }
 }
 
+/// Returns a valid UTF-8 string from a slice of bytes.
+///
+/// A few shaderc functions have been observed to return invalid UTF-8 strings as
+/// warning/error messages, and instead of panicking and aborting execution this
+/// function can be used to convert the valid parts of the byte stream to 
+/// a UTF-8 string
+fn safe_str_from_utf8(bytes: &[u8]) -> String {
+    match str::from_utf8(bytes) {
+        Ok(str) => str.to_string(),
+        Err(err) => {
+            if err.valid_up_to() > 0 {
+                return format!("{} (followed by invalid UTF-8 characters)", 
+                    safe_str_from_utf8(&bytes[.. err.valid_up_to()]));
+            } else { 
+                return format!("invalid UTF-8 string: {}", err);
+            }
+        }
+    }
+}
+
+
 impl Compiler {
     /// Returns an compiler object that can be used to compile SPIR-V modules.
     ///
@@ -373,7 +394,7 @@ impl Compiler {
             let reason = unsafe {
                 let p = ffi::shaderc_result_get_error_message(result);
                 let bytes = CStr::from_ptr(p).to_bytes();
-                str::from_utf8(bytes).ok().expect("invalid utf-8 string").to_string()
+                safe_str_from_utf8(bytes)
             };
             match status {
                 1 => Err(Error::InvalidStage(reason)),
@@ -972,7 +993,7 @@ impl CompilationArtifact {
         unsafe {
             let p = ffi::shaderc_result_get_error_message(self.raw);
             let bytes = CStr::from_ptr(p).to_bytes();
-            str::from_utf8(bytes).ok().expect("invalid utf-8 string").to_string()
+            safe_str_from_utf8(bytes)
         }
     }
 }
