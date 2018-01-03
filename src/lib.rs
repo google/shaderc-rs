@@ -350,19 +350,19 @@ fn propagate_panic<F, T>(f: F) -> T where F : FnOnce() -> T {
 
 /// Returns a valid UTF-8 string from a slice of bytes.
 ///
-/// A few shaderc functions have been observed to return invalid UTF-8 strings a
-/// s warning/error messages, and instead of paniqing and aborting execution this
-/// function can be used that will convert the valid parts of the byte stream to 
+/// A few shaderc functions have been observed to return invalid UTF-8 strings as
+/// warning/error messages, and instead of panicking and aborting execution this
+/// function can be used to convert the valid parts of the byte stream to 
 /// a UTF-8 string
 fn safe_str_from_utf8(bytes: &[u8]) -> String {
     match str::from_utf8(bytes) {
         Ok(str) => str.to_string(),
         Err(err) => {
             if err.valid_up_to() > 0 {
-                return format!("{} (followed by invalid UTF-8)", 
+                return format!("{} (followed by invalid UTF-8 characters)", 
                     safe_str_from_utf8(&bytes[.. err.valid_up_to()]));
             } else { 
-                return format!("invalid utf-8 stringe: {}", err);
+                return format!("invalid UTF-8 string: {}", err);
             }
         }
     }
@@ -402,7 +402,7 @@ impl Compiler {
                 3 => Err(Error::InternalError(reason)),
                 4 => Err(Error::NullResultObject(reason)),
                 5 => Err(Error::InvalidAssembly(reason)),
-               _ => panic!("unhandled shaderc error case"),
+                _ => panic!("unhandled shaderc error case"),
             }
         }
     }
