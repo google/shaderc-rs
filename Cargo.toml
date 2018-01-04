@@ -1,6 +1,6 @@
 [package]
 name = "shaderc"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 
 build = "build/build.rs"
