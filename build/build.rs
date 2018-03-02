@@ -23,6 +23,7 @@ fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
             .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
             .define("SPIRV_SKIP_EXECUTABLES", "ON")
             .define("SHADERC_SKIP_TESTS", "ON")
+            .define("CMAKE_INSTALL_LIBDIR", "lib")
             .build()
 }
 
@@ -39,6 +40,7 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
             .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
             .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
             .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
+            .define("CMAKE_INSTALL_LIBDIR", "lib")
             .build()
 }
 
