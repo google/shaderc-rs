@@ -58,7 +58,7 @@ extern crate libc;
 #[macro_use]
 extern crate assert_matches;
 
-use libc::{c_int, int32_t, uint32_t, c_void, c_char, size_t};
+use libc::{c_char, c_int, c_void, size_t, int32_t, uint32_t};
 use std::{error, fmt, ptr, result, slice, str};
 use std::ffi::{CStr, CString};
 use std::cell::RefCell;
@@ -333,14 +333,15 @@ pub struct Compiler {
     raw: *mut ffi::ShadercCompiler,
 }
 
-fn propagate_panic<F, T>(f: F) -> T where F : FnOnce() -> T {
+fn propagate_panic<F, T>(f: F) -> T
+where
+    F: FnOnce() -> T,
+{
     PANIC_ERROR.with(|panic_error| {
         *panic_error.borrow_mut() = None;
     });
     let result = f();
-    let err = PANIC_ERROR.with(|panic_error| {
-        panic_error.borrow_mut().take()
-    });
+    let err = PANIC_ERROR.with(|panic_error| panic_error.borrow_mut().take());
     if let Some(err) = err {
         panic::resume_unwind(err)
     } else {
@@ -352,22 +353,23 @@ fn propagate_panic<F, T>(f: F) -> T where F : FnOnce() -> T {
 ///
 /// A few shaderc functions have been observed to return invalid UTF-8 strings as
 /// warning/error messages, and instead of panicking and aborting execution this
-/// function can be used to convert the valid parts of the byte stream to 
+/// function can be used to convert the valid parts of the byte stream to
 /// a UTF-8 string
 fn safe_str_from_utf8(bytes: &[u8]) -> String {
     match str::from_utf8(bytes) {
         Ok(str) => str.to_string(),
         Err(err) => {
             if err.valid_up_to() > 0 {
-                return format!("{} (followed by invalid UTF-8 characters)", 
-                    safe_str_from_utf8(&bytes[.. err.valid_up_to()]));
-            } else { 
+                return format!(
+                    "{} (followed by invalid UTF-8 characters)",
+                    safe_str_from_utf8(&bytes[..err.valid_up_to()])
+                );
+            } else {
                 return format!("invalid UTF-8 string: {}", err);
             }
         }
     }
 }
-
 
 impl Compiler {
     /// Returns an compiler object that can be used to compile SPIR-V modules.
@@ -383,9 +385,10 @@ impl Compiler {
         }
     }
 
-    fn handle_compilation_result(result: *mut ffi::ShadercCompilationResult,
-                                 is_binary: bool)
-                                 -> Result<CompilationArtifact> {
+    fn handle_compilation_result(
+        result: *mut ffi::ShadercCompilationResult,
+        is_binary: bool,
+    ) -> Result<CompilationArtifact> {
         let status = unsafe { ffi::shaderc_result_get_compilation_status(result) };
         if status == 0 {
             Ok(CompilationArtifact::new(result, is_binary))
@@ -427,28 +430,31 @@ impl Compiler {
     ///
     /// `entry_point_name` is a string defines the name of the entry point
     /// to associate with the source string.
-    pub fn compile_into_spirv(&mut self,
-                              source_text: &str,
-                              shader_kind: ShaderKind,
-                              input_file_name: &str,
-                              entry_point_name: &str,
-                              additional_options: Option<&CompileOptions>)
-                              -> Result<CompilationArtifact> {
+    pub fn compile_into_spirv(
+        &mut self,
+        source_text: &str,
+        shader_kind: ShaderKind,
+        input_file_name: &str,
+        entry_point_name: &str,
+        additional_options: Option<&CompileOptions>,
+    ) -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source_text to c string");
-        let c_file = CString::new(input_file_name)
-                         .expect("cannot convert input_file_name to c string");
-        let c_entry_point = CString::new(entry_point_name)
-                                .expect("cannot convert entry_point_name to c string");
+        let c_file =
+            CString::new(input_file_name).expect("cannot convert input_file_name to c string");
+        let c_entry_point =
+            CString::new(entry_point_name).expect("cannot convert entry_point_name to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_compile_into_spv(self.raw,
-                                              c_source.as_ptr(),
-                                              source_size,
-                                              shader_kind as int32_t,
-                                              c_file.as_ptr(),
-                                              c_entry_point.as_ptr(),
-                                              additional_options.map_or(ptr::null(), |ref o| o.raw))
+                ffi::shaderc_compile_into_spv(
+                    self.raw,
+                    c_source.as_ptr(),
+                    source_size,
+                    shader_kind as int32_t,
+                    c_file.as_ptr(),
+                    c_entry_point.as_ptr(),
+                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                )
             };
             Compiler::handle_compilation_result(result, true)
         })
@@ -460,29 +466,31 @@ impl Compiler {
     /// The output SPIR-V assembly string will be of the format defined in
     /// the [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools/blob/master/syntax.md)
     /// project.
-    pub fn compile_into_spirv_assembly(&mut self,
-                                       source_text: &str,
-                                       shader_kind: ShaderKind,
-                                       input_file_name: &str,
-                                       entry_point_name: &str,
-                                       additional_options: Option<&CompileOptions>)
-                                       -> Result<CompilationArtifact> {
+    pub fn compile_into_spirv_assembly(
+        &mut self,
+        source_text: &str,
+        shader_kind: ShaderKind,
+        input_file_name: &str,
+        entry_point_name: &str,
+        additional_options: Option<&CompileOptions>,
+    ) -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source_text to c string");
-        let c_file = CString::new(input_file_name)
-                         .expect("cannot convert input_file_name to c string");
-        let c_entry_point = CString::new(entry_point_name)
-                                .expect("cannot convert entry_point_name to c string");
+        let c_file =
+            CString::new(input_file_name).expect("cannot convert input_file_name to c string");
+        let c_entry_point =
+            CString::new(entry_point_name).expect("cannot convert entry_point_name to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_compile_into_spv_assembly(self.raw,
-                                                       c_source.as_ptr(),
-                                                       source_size,
-                                                       shader_kind as int32_t,
-                                                       c_file.as_ptr(),
-                                                       c_entry_point.as_ptr(),
-                                                       additional_options.map_or(ptr::null(),
-                                                                                 |ref o| o.raw))
+                ffi::shaderc_compile_into_spv_assembly(
+                    self.raw,
+                    c_source.as_ptr(),
+                    source_size,
+                    shader_kind as int32_t,
+                    c_file.as_ptr(),
+                    c_entry_point.as_ptr(),
+                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                )
             };
             Compiler::handle_compilation_result(result, false)
         })
@@ -490,29 +498,31 @@ impl Compiler {
 
     /// Like `compile_into_spirv` but the result contains preprocessed source
     /// code instead of a SPIR-V binary module.
-    pub fn preprocess(&mut self,
-                      source_text: &str,
-                      input_file_name: &str,
-                      entry_point_name: &str,
-                      additional_options: Option<&CompileOptions>)
-                      -> Result<CompilationArtifact> {
+    pub fn preprocess(
+        &mut self,
+        source_text: &str,
+        input_file_name: &str,
+        entry_point_name: &str,
+        additional_options: Option<&CompileOptions>,
+    ) -> Result<CompilationArtifact> {
         let source_size = source_text.len();
         let c_source = CString::new(source_text).expect("cannot convert source to c string");
-        let c_file = CString::new(input_file_name)
-                         .expect("cannot convert input_file_name to c string");
-        let c_entry_point = CString::new(entry_point_name)
-                                .expect("cannot convert entry_point_name to c string");
+        let c_file =
+            CString::new(input_file_name).expect("cannot convert input_file_name to c string");
+        let c_entry_point =
+            CString::new(entry_point_name).expect("cannot convert entry_point_name to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_compile_into_preprocessed_text(self.raw,
-                                                            c_source.as_ptr(),
-                                                            source_size,
-                                                            // Stage doesn't matter for preprocess
-                                                            ShaderKind::Vertex as int32_t,
-                                                            c_file.as_ptr(),
-                                                            c_entry_point.as_ptr(),
-                                                            additional_options.map_or(ptr::null(),
-                                                                                      |ref o| o.raw))
+                ffi::shaderc_compile_into_preprocessed_text(
+                    self.raw,
+                    c_source.as_ptr(),
+                    source_size,
+                    // Stage doesn't matter for preprocess
+                    ShaderKind::Vertex as int32_t,
+                    c_file.as_ptr(),
+                    c_entry_point.as_ptr(),
+                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                )
             };
             Compiler::handle_compilation_result(result, false)
         })
@@ -527,19 +537,22 @@ impl Compiler {
     ///
     /// For options specified in `additional_options`, the assembling will
     /// only pick those ones suitable for assembling.
-    pub fn assemble(&mut self,
-                    source_assembly: &str,
-                    additional_options: Option<&CompileOptions>)
-                    -> Result<CompilationArtifact> {
+    pub fn assemble(
+        &mut self,
+        source_assembly: &str,
+        additional_options: Option<&CompileOptions>,
+    ) -> Result<CompilationArtifact> {
         let source_size = source_assembly.len();
-        let c_source = CString::new(source_assembly)
-                           .expect("cannot convert source_assembly to c string");
+        let c_source =
+            CString::new(source_assembly).expect("cannot convert source_assembly to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_assemble_into_spv(self.raw,
-                                               c_source.as_ptr(),
-                                               source_size,
-                                               additional_options.map_or(ptr::null(), |ref o| o.raw))
+                ffi::shaderc_assemble_into_spv(
+                    self.raw,
+                    c_source.as_ptr(),
+                    source_size,
+                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                )
             };
             Compiler::handle_compilation_result(result, true)
         })
@@ -555,7 +568,9 @@ impl Drop for Compiler {
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
     raw: *mut ffi::ShadercCompileOptions,
-    f: Option<Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>>
+    f: Option<
+        Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>,
+    >,
 }
 
 /// Identifies the type of include directive. `Relative` is for include directives of the form
@@ -563,7 +578,7 @@ pub struct CompileOptions<'a> {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Debug)]
 pub enum IncludeType {
     Relative,
-    Standard
+    Standard,
 }
 
 /// A representation of a successfully resolved include directive, containing the name of the include
@@ -577,7 +592,7 @@ pub struct ResolvedInclude {
     /// This field must not be empty. Compilation will panic if an empty string is provided.
     pub resolved_name: String,
     /// The content of the include to substitute the include directive with.
-    pub content: String
+    pub content: String,
 }
 
 thread_local! {
@@ -642,9 +657,11 @@ impl<'a> CompileOptions<'a> {
     /// e.g., version below 150.
     pub fn set_forced_version_profile(&mut self, version: u32, profile: GlslProfile) {
         unsafe {
-            ffi::shaderc_compile_options_set_forced_version_profile(self.raw,
-                                                                    version as c_int,
-                                                                    profile as int32_t)
+            ffi::shaderc_compile_options_set_forced_version_profile(
+                self.raw,
+                version as c_int,
+                profile as int32_t,
+            )
         }
     }
 
@@ -664,46 +681,69 @@ impl<'a> CompileOptions<'a> {
     /// Behaviour note: If `Err` is returned for a `Relative` include request, the callback will be
     /// tried again with `Standard`, which is similar to include directive behaviour in C.
     pub fn set_include_callback<F>(&mut self, f: F)
-        where F : Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a
+    where
+        F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
     {
         use std::mem;
 
         let f = Box::new(f);
         let f_ptr = &*f as *const F;
-        self.f = Some(f as Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>);
+        self.f = Some(
+            f
+                as Box<
+                    Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String>
+                        + 'a,
+                >,
+        );
         unsafe {
-            ffi::shaderc_compile_options_set_include_callbacks(self.raw, resolver::<'a, F>, releaser, f_ptr as *const c_void as *mut c_void);
+            ffi::shaderc_compile_options_set_include_callbacks(
+                self.raw,
+                resolver::<'a, F>,
+                releaser,
+                f_ptr as *const c_void as *mut c_void,
+            );
         }
 
         struct OkResultWrapper {
             source_name: CString,
             content: CString,
-            wrapped: ffi::shaderc_include_result
+            wrapped: ffi::shaderc_include_result,
         }
 
         struct ErrResultWrapper {
             error_message: CString,
-            wrapped: ffi::shaderc_include_result
+            wrapped: ffi::shaderc_include_result,
         }
 
-        extern "C" fn resolver<'a, F>(user_data: *mut c_void,
-                               requested_source: *const c_char,
-                               type_: c_int,
-                               requesting_source: *const c_char,
-                               include_depth: size_t) -> *mut ffi::shaderc_include_result
-            where F : Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a
+        extern "C" fn resolver<'a, F>(
+            user_data: *mut c_void,
+            requested_source: *const c_char,
+            type_: c_int,
+            requesting_source: *const c_char,
+            include_depth: size_t,
+        ) -> *mut ffi::shaderc_include_result
+        where
+            F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
         {
             let result = panic::catch_unwind(move || {
                 let f = unsafe { &*(user_data as *const F) };
-                let requested_source = unsafe { CStr::from_ptr(requested_source).to_string_lossy() };
+                let requested_source =
+                    unsafe { CStr::from_ptr(requested_source).to_string_lossy() };
                 let type_ = match type_ {
                     0 => IncludeType::Relative,
                     1 => IncludeType::Standard,
-                    x => panic!("include callback: unknown include type returned from libshaderc: {}", x)
+                    x => panic!(
+                        "include callback: unknown include type returned from libshaderc: {}",
+                        x
+                    ),
                 };
-                let requesting_source = unsafe { CStr::from_ptr(requesting_source).to_string_lossy() };
+                let requesting_source =
+                    unsafe { CStr::from_ptr(requesting_source).to_string_lossy() };
                 match f(&requested_source, type_, &requesting_source, include_depth) {
-                    Ok(ResolvedInclude { resolved_name, content }) => {
+                    Ok(ResolvedInclude {
+                        resolved_name,
+                        content,
+                    }) => {
                         if resolved_name.len() == 0 {
                             panic!("include callback: empty strings for resolved include names not allowed");
                         }
@@ -725,8 +765,10 @@ impl<'a> CompileOptions<'a> {
                     }
                     Err(error_message) => {
                         let mut result = Box::new(ErrResultWrapper {
-                            error_message: CString::new(error_message).expect("include callback: could not convert error message to a c string"),
-                            wrapped: unsafe { mem::zeroed() }
+                            error_message: CString::new(error_message).expect(
+                                "include callback: could not convert error message to a c string",
+                            ),
+                            wrapped: unsafe { mem::zeroed() },
                         });
                         result.wrapped = ffi::shaderc_include_result {
                             source_name: CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
@@ -749,7 +791,7 @@ impl<'a> CompileOptions<'a> {
                     });
                     let mut result = Box::new(ErrResultWrapper {
                         error_message: CString::new("").unwrap(),
-                        wrapped: unsafe { mem::zeroed() }
+                        wrapped: unsafe { mem::zeroed() },
                     });
                     result.wrapped = ffi::shaderc_include_result {
                         source_name: CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
@@ -825,13 +867,19 @@ impl<'a> CompileOptions<'a> {
     }
 
     /// Like `set_binding_base`, but only takes effect when compiling the given shader stage.
-    pub fn set_binding_base_for_stage(&mut self,
-                                      shader_kind: ShaderKind,
-                                      resource_kind: ResourceKind,
-                                      base: u32) {
+    pub fn set_binding_base_for_stage(
+        &mut self,
+        shader_kind: ShaderKind,
+        resource_kind: ResourceKind,
+        base: u32,
+    ) {
         unsafe {
             ffi::shaderc_compile_options_set_binding_base_for_stage(
-                self.raw, shader_kind as int32_t, resource_kind as int32_t, base);
+                self.raw,
+                shader_kind as int32_t,
+                resource_kind as int32_t,
+                base,
+            );
         }
     }
 
@@ -842,23 +890,34 @@ impl<'a> CompileOptions<'a> {
         let c_binding = CString::new(binding).expect("cannot convert string to c string");
         unsafe {
             ffi::shaderc_compile_options_set_hlsl_register_set_and_binding(
-                self.raw, c_register.as_ptr(), c_set.as_ptr(), c_binding.as_ptr());
+                self.raw,
+                c_register.as_ptr(),
+                c_set.as_ptr(),
+                c_binding.as_ptr(),
+            );
         }
     }
 
     /// Like `set_hlsl_register_set_and_binding`, but only takes effect when compiling
     /// the given shader stage.
-    pub fn set_hlsl_register_set_and_binding_for_stage(&mut self,
-                                                       kind: ShaderKind,
-                                                       register: &str,
-                                                       set: &str,
-                                                       binding: &str) {
+    pub fn set_hlsl_register_set_and_binding_for_stage(
+        &mut self,
+        kind: ShaderKind,
+        register: &str,
+        set: &str,
+        binding: &str,
+    ) {
         let c_register = CString::new(register).expect("cannot convert string to c string");
         let c_set = CString::new(set).expect("cannot convert string to c string");
         let c_binding = CString::new(binding).expect("cannot convert string to c string");
         unsafe {
             ffi::shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
-                self.raw, kind as int32_t, c_register.as_ptr(), c_set.as_ptr(), c_binding.as_ptr());
+                self.raw,
+                kind as int32_t,
+                c_register.as_ptr(),
+                c_set.as_ptr(),
+                c_binding.as_ptr(),
+            );
         }
     }
 
@@ -875,19 +934,23 @@ impl<'a> CompileOptions<'a> {
             let value = value.unwrap();
             let c_value = CString::new(value).expect("cannot convert value to c string");
             unsafe {
-                ffi::shaderc_compile_options_add_macro_definition(self.raw,
-                                                                  c_name.as_ptr(),
-                                                                  name.len(),
-                                                                  c_value.as_ptr(),
-                                                                  value.len())
+                ffi::shaderc_compile_options_add_macro_definition(
+                    self.raw,
+                    c_name.as_ptr(),
+                    name.len(),
+                    c_value.as_ptr(),
+                    value.len(),
+                )
             }
         } else {
             unsafe {
-                ffi::shaderc_compile_options_add_macro_definition(self.raw,
-                                                                  c_name.as_ptr(),
-                                                                  name.len(),
-                                                                  ptr::null(),
-                                                                  0)
+                ffi::shaderc_compile_options_add_macro_definition(
+                    self.raw,
+                    c_name.as_ptr(),
+                    name.len(),
+                    ptr::null(),
+                    0,
+                )
             }
         }
     }
@@ -979,7 +1042,10 @@ impl CompilationArtifact {
         unsafe {
             let p = ffi::shaderc_result_get_bytes(self.raw);
             let bytes = CStr::from_ptr(p).to_bytes();
-            str::from_utf8(bytes).ok().expect("invalid utf-8 string").to_string()
+            str::from_utf8(bytes)
+                .ok()
+                .expect("invalid utf-8 string")
+                .to_string()
         }
     }
 
@@ -1118,12 +1184,9 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_compile_vertex_shader_into_spirv() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv(VOID_MAIN,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          None)
-                      .unwrap();
+        let result =
+            c.compile_into_spirv(VOID_MAIN, ShaderKind::Vertex, "shader.glsl", "main", None)
+                .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1133,12 +1196,13 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_compile_vertex_shader_into_spirv_assembly() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv_assembly(VOID_MAIN,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   None)
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            VOID_MAIN,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            None,
+        ).unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1148,15 +1212,14 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
         let result = c.preprocess(VOID_E, "shader.glsl", "main", Some(&options))
-                      .unwrap();
+            .unwrap();
         assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
     }
 
     #[test]
     fn test_assemble() {
         let mut c = Compiler::new().unwrap();
-        let result = c.assemble(VOID_MAIN_ASSEMBLY, None)
-                      .unwrap();
+        let result = c.assemble(VOID_MAIN_ASSEMBLY, None).unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1168,12 +1231,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
-        let result = c.compile_into_spirv_assembly(VOID_E,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            VOID_E,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1182,12 +1246,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some(""));
-        let result = c.compile_into_spirv_assembly(EXTRA_E,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            EXTRA_E,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1196,12 +1261,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
-        let result = c.compile_into_spirv_assembly(IFDEF_E,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            IFDEF_E,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1211,12 +1277,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
         let o = options.clone().unwrap();
-        let result = c.compile_into_spirv_assembly(IFDEF_E,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&o))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            IFDEF_E,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&o),
+        ).unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1225,12 +1292,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_source_language(SourceLanguage::HLSL);
-        let result = c.compile_into_spirv(HLSL_VERTEX,
-                                          ShaderKind::Vertex,
-                                          "shader.hlsl",
-                                          "main",
-                                          Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv(
+            HLSL_VERTEX,
+            ShaderKind::Vertex,
+            "shader.hlsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1242,12 +1310,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_generate_debug_info();
-        let result = c.compile_into_spirv_assembly(DEBUG_INFO,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            DEBUG_INFO,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert!(result.as_text().contains("debug_info_sample"));
     }
 
@@ -1256,12 +1325,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_optimization_level(OptimizationLevel::Zero);
-        let result = c.compile_into_spirv_assembly(DEBUG_INFO,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            DEBUG_INFO,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert!(result.as_text().contains("OpName"));
         assert!(result.as_text().contains("OpSource"));
     }
@@ -1271,12 +1341,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_optimization_level(OptimizationLevel::Size);
-        let result = c.compile_into_spirv_assembly(DEBUG_INFO,
-                                                   ShaderKind::Vertex,
-                                                   "shader.glsl",
-                                                   "main",
-                                                   Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv_assembly(
+            DEBUG_INFO,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert!(!result.as_text().contains("OpName"));
         assert!(!result.as_text().contains("OpSource"));
     }
@@ -1286,12 +1357,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_forced_version_profile(450, GlslProfile::Core);
-        let result = c.compile_into_spirv(CORE_PROFILE,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv(
+            CORE_PROFILE,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1303,11 +1375,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_forced_version_profile(310, GlslProfile::Es);
-        let result = c.compile_into_spirv(CORE_PROFILE,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          Some(&options));
+        let result = c.compile_into_spirv(
+            CORE_PROFILE,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        );
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
@@ -1319,9 +1393,7 @@ void main() { my_ssbo.x = 1.0; }";
     fn test_include_directive_panic() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
-        options.set_include_callback(|_, _, _, _| {
-            panic!("Panic in include resolver!")
-        });
+        options.set_include_callback(|_, _, _, _| panic!("Panic in include resolver!"));
         drop(c.compile_into_spirv_assembly(
             r#"
             #version 400
@@ -1330,7 +1402,8 @@ void main() { my_ssbo.x = 1.0; }";
             ShaderKind::Vertex,
             "shader.glsl",
             "main",
-            Some(&options)));
+            Some(&options),
+        ));
     }
 
     #[test]
@@ -1348,7 +1421,8 @@ void main() { my_ssbo.x = 1.0; }";
             ShaderKind::Vertex,
             "shader.glsl",
             "main",
-            Some(&options));
+            Some(&options),
+        );
         assert!(result.is_err());
         assert_matches!(result.err(),
             Some(Error::CompilationError(1, ref s))
@@ -1383,7 +1457,8 @@ void main() { my_ssbo.x = 1.0; }";
             ShaderKind::Vertex,
             "shader.glsl",
             "main",
-            Some(&options));
+            Some(&options),
+        );
         assert_matches!(result.err(), None);
     }
 
@@ -1392,12 +1467,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_suppress_warnings();
-        let result = c.compile_into_spirv(ONE_WARNING,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          Some(&options))
-                      .unwrap();
+        let result = c.compile_into_spirv(
+            ONE_WARNING,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
         assert_eq!(0, result.get_num_warnings());
     }
 
@@ -1406,11 +1482,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_warnings_as_errors();
-        let result = c.compile_into_spirv(ONE_WARNING,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          Some(&options));
+        let result = c.compile_into_spirv(
+            ONE_WARNING,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        );
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(1, ref s))
@@ -1420,11 +1498,13 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_compile_options_set_target_env_err_vulkan() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv(COMPAT_FRAG,
-                                          ShaderKind::Fragment,
-                                          "shader.glsl",
-                                          "main",
-                                          None);
+        let result = c.compile_into_spirv(
+            COMPAT_FRAG,
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            None,
+        );
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(4, ref s))
@@ -1437,11 +1517,13 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_target_env(TargetEnv::OpenGL, 0);
-        let result = c.compile_into_spirv(COMPAT_FRAG,
-                                          ShaderKind::Fragment,
-                                          "shader.glsl",
-                                          "main",
-                                          Some(&options));
+        let result = c.compile_into_spirv(
+            COMPAT_FRAG,
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        );
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
@@ -1466,37 +1548,42 @@ void main() { my_ssbo.x = 1.0; }";
     fn test_compile_options_set_limit() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
-        assert!(c.compile_into_spirv(&texture_offset!(7),
-                                     ShaderKind::Fragment,
-                                     "shader.glsl",
-                                     "main",
-                                     Some(&options))
-                 .is_ok());
-        assert!(c.compile_into_spirv(&texture_offset!(8),
-                                     ShaderKind::Fragment,
-                                     "shader.glsl",
-                                     "main",
-                                     Some(&options))
-                 .is_err());
+        assert!(c.compile_into_spirv(
+            &texture_offset!(7),
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            Some(&options)
+        ).is_ok());
+        assert!(c.compile_into_spirv(
+            &texture_offset!(8),
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            Some(&options)
+        ).is_err());
         options.set_limit(Limit::MaxProgramTexelOffset, 10);
-        assert!(c.compile_into_spirv(&texture_offset!(8),
-                                     ShaderKind::Fragment,
-                                     "shader.glsl",
-                                     "main",
-                                     Some(&options))
-                 .is_ok());
-        assert!(c.compile_into_spirv(&texture_offset!(10),
-                                     ShaderKind::Fragment,
-                                     "shader.glsl",
-                                     "main",
-                                     Some(&options))
-                 .is_ok());
-        assert!(c.compile_into_spirv(&texture_offset!(11),
-                                     ShaderKind::Fragment,
-                                     "shader.glsl",
-                                     "main",
-                                     Some(&options))
-                 .is_err());
+        assert!(c.compile_into_spirv(
+            &texture_offset!(8),
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            Some(&options)
+        ).is_ok());
+        assert!(c.compile_into_spirv(
+            &texture_offset!(10),
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            Some(&options)
+        ).is_ok());
+        assert!(c.compile_into_spirv(
+            &texture_offset!(11),
+            ShaderKind::Fragment,
+            "shader.glsl",
+            "main",
+            Some(&options)
+        ).is_err());
     }
 
     #[test]
@@ -1528,7 +1615,8 @@ void main() { my_ssbo.x = 1.0; }";
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
+        ).unwrap()
+            .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 0"));
         assert!(result.contains("OpDecorate %my_sam Binding 1"));
         assert!(result.contains("OpDecorate %my_img Binding 2"));
@@ -1547,7 +1635,8 @@ void main() { my_ssbo.x = 1.0; }";
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
+        ).unwrap()
+            .as_text();
         assert!(result.contains("OpMemberDecorate %B 1 Offset 16"));
     }
 
@@ -1562,7 +1651,8 @@ void main() { my_ssbo.x = 1.0; }";
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
+        ).unwrap()
+            .as_text();
         assert!(result.contains("OpMemberDecorate %B 1 Offset 4"));
     }
 
@@ -1578,7 +1668,8 @@ void main() { my_ssbo.x = 1.0; }";
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
+        ).unwrap()
+            .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 0"));
         assert!(result.contains("OpDecorate %my_sam Binding 1"));
         assert!(result.contains("OpDecorate %my_img Binding 44"));
@@ -1591,15 +1682,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_auto_bind_uniforms(true);
-        options.set_binding_base_for_stage(ShaderKind::Vertex,
-                                           ResourceKind::Texture, 100);
+        options.set_binding_base_for_stage(ShaderKind::Vertex, ResourceKind::Texture, 100);
         let result = c.compile_into_spirv_assembly(
             UNIFORMS_NO_BINDINGS,
             ShaderKind::Vertex,
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
+        ).unwrap()
+            .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 100"));
         assert!(result.contains("OpDecorate %my_sam Binding 0"));
         assert!(result.contains("OpDecorate %my_img Binding 1"));
@@ -1612,15 +1703,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_auto_bind_uniforms(true);
-        options.set_binding_base_for_stage(ShaderKind::Fragment,
-                                           ResourceKind::Texture, 100);
+        options.set_binding_base_for_stage(ShaderKind::Fragment, ResourceKind::Texture, 100);
         let result = c.compile_into_spirv_assembly(
             UNIFORMS_NO_BINDINGS,
             ShaderKind::Vertex,
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
+        ).unwrap()
+            .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 0"));
         assert!(result.contains("OpDecorate %my_sam Binding 1"));
         assert!(result.contains("OpDecorate %my_img Binding 2"));
@@ -1631,24 +1722,25 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_error_compilation_error() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv(TWO_ERROR,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          None);
+        let result =
+            c.compile_into_spirv(TWO_ERROR, ShaderKind::Vertex, "shader.glsl", "main", None);
         assert!(result.is_err());
-        assert_eq!(Some(Error::CompilationError(2, TWO_ERROR_MSG.to_string())),
-                   result.err());
+        assert_eq!(
+            Some(Error::CompilationError(2, TWO_ERROR_MSG.to_string())),
+            result.err()
+        );
     }
 
     #[test]
     fn test_error_invalid_stage() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv(VOID_MAIN,
-                                          ShaderKind::InferFromSource,
-                                          "shader.glsl",
-                                          "main",
-                                          None);
+        let result = c.compile_into_spirv(
+            VOID_MAIN,
+            ShaderKind::InferFromSource,
+            "shader.glsl",
+            "main",
+            None,
+        );
         assert!(result.is_err());
         assert_eq!(Some(Error::InvalidStage("".to_string())), result.err());
     }
@@ -1656,12 +1748,9 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_warning() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv(ONE_WARNING,
-                                          ShaderKind::Vertex,
-                                          "shader.glsl",
-                                          "main",
-                                          None)
-                      .unwrap();
+        let result =
+            c.compile_into_spirv(ONE_WARNING, ShaderKind::Vertex, "shader.glsl", "main", None)
+                .unwrap();
         assert_eq!(1, result.get_num_warnings());
         assert_eq!(ONE_WARNING_MSG.to_string(), result.get_warning_messages());
     }
@@ -1675,8 +1764,10 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_parse_version_profile() {
         assert_eq!(Some((310, GlslProfile::Es)), parse_version_profile("310es"));
-        assert_eq!(Some((450, GlslProfile::Compatibility)),
-                   parse_version_profile("450compatibility"));
+        assert_eq!(
+            Some((450, GlslProfile::Compatibility)),
+            parse_version_profile("450compatibility")
+        );
         assert_eq!(Some((140, GlslProfile::None)), parse_version_profile("140"));
         assert_eq!(None, parse_version_profile("something"));
         assert_eq!(None, parse_version_profile(""));
