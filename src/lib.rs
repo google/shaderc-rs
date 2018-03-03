@@ -1067,7 +1067,7 @@ shader.glsl:2: warning: attribute deprecated in version 130; may be removed in f
     /// A shader that compiles under OpenGL compatibility but not core profile rules.
     static COMPAT_FRAG: &'static str = "\
 #version 100
-uniform highp sampler2D tex;
+layout(binding = 0) uniform highp sampler2D tex;
 void main() {
     gl_FragColor = texture2D(tex, vec2(0.));
 }";
@@ -1075,7 +1075,7 @@ void main() {
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
 ; Version: 1.0
-; Generator: Google Shaderc over Glslang; 3
+; Generator: Google Shaderc over Glslang; 4
 ; Bound: 6
 ; Schema: 0
                OpCapability Shader
@@ -1418,23 +1418,6 @@ void main() { my_ssbo.x = 1.0; }";
     }
 
     #[test]
-    fn test_compile_options_set_target_env_ok() {
-        let mut c = Compiler::new().unwrap();
-        let mut options = CompileOptions::new().unwrap();
-        options.set_target_env(TargetEnv::OpenGLCompat, 0);
-        let result = c.compile_into_spirv(COMPAT_FRAG,
-                                          ShaderKind::Fragment,
-                                          "shader.glsl",
-                                          "main",
-                                          Some(&options))
-                      .unwrap();
-        assert!(result.len() > 20);
-        assert!(result.as_binary().first() == Some(&0x07230203));
-        let function_end_word: u32 = (1 << 16) | 56;
-        assert!(result.as_binary().last() == Some(&function_end_word));
-    }
-
-    #[test]
     fn test_compile_options_set_target_env_err_vulkan() {
         let mut c = Compiler::new().unwrap();
         let result = c.compile_into_spirv(COMPAT_FRAG,
@@ -1469,8 +1452,8 @@ void main() { my_ssbo.x = 1.0; }";
     /// Returns a fragment shader accessing a texture with the given offset.
     macro_rules! texture_offset {
         ($offset:expr) => ({
-            let mut s = "#version 150
-                         uniform sampler1D tex;
+            let mut s = "#version 450
+                         layout (binding=0) uniform sampler1D tex;
                          void main() {
                             vec4 x = textureOffset(tex, 1., ".to_string();
             s.push_str(stringify!($offset));
@@ -1527,12 +1510,11 @@ void main() { my_ssbo.x = 1.0; }";
             "shader.glsl",
             "main",
             Some(&options),
-        ).unwrap().as_text();
-        assert!(!result.contains("OpDecorate %my_tex Binding"));
-        assert!(!result.contains("OpDecorate %my_sam Binding"));
-        assert!(!result.contains("OpDecorate %my_img Binding"));
-        assert!(!result.contains("OpDecorate %my_imbuf Binding"));
-        assert!(!result.contains("OpDecorate %my_ubo Binding"));
+        );
+        assert!(result.is_err());
+        assert_matches!(result.err(),
+                        Some(Error::CompilationError(4, ref s))
+                            if s.contains("error: 'binding' : sampler/texture/image requires layout(binding=X)"));
     }
 
     #[test]
@@ -1687,7 +1669,7 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_get_spirv_version() {
         let (version, _) = get_spirv_version();
-        assert_eq!(0x10000, version);
+        assert_eq!((1 << 16) + (2 << 8), version);
     }
 
     #[test]
