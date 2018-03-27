@@ -65,9 +65,10 @@ fn main() {
     lib_path.push("lib");
 
     println!("cargo:rustc-link-search=native={}", lib_path.display());
-    if target_os == "windows" {
-        println!("cargo:rustc-link-lib=static=shaderc_combined");
-    } else {
-        println!("cargo:rustc-link-lib=dylib=shaderc_shared");
+    println!("cargo:rustc-link-lib=static=shaderc_combined");
+    if target_os == "linux" {
+        println!("cargo:rustc-link-lib=dylib=stdc++");
+    } else if target_os == "macos" {
+        println!("cargo:rustc-link-lib=dylib=c++");
     }
 }
