@@ -234,6 +234,7 @@ pub enum OptimizationLevel {
     Zero,
     /// Optimize towards reducing code size
     Size,
+    Performance,
 }
 
 /// Resource limit.
@@ -1130,6 +1131,13 @@ shader.glsl:2: warning: attribute deprecated in version 130; may be removed in f
                                        void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
     static CORE_PROFILE: &'static str = "void main() {\n gl_ClipDistance[0] = 5.;\n }";
 
+    static TWO_FN: &'static str = "\
+#version 450
+layout(location=0) in  int inVal;
+layout(location=0) out int outVal;
+int foo(int a) { return a; }
+void main() { outVal = foo(inVal); }";
+
     /// A shader that compiles under OpenGL compatibility but not core profile rules.
     static COMPAT_FRAG: &'static str = "\
 #version 100
@@ -1342,14 +1350,28 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.set_optimization_level(OptimizationLevel::Size);
         let result = c.compile_into_spirv_assembly(
-            DEBUG_INFO,
+            TWO_FN,
             ShaderKind::Vertex,
             "shader.glsl",
             "main",
             Some(&options),
         ).unwrap();
-        assert!(!result.as_text().contains("OpName"));
-        assert!(!result.as_text().contains("OpSource"));
+        assert!(!result.as_text().contains("OpFunctionCall"));
+    }
+
+    #[test]
+    fn test_compile_options_set_optimization_level_performance() {
+        let mut c = Compiler::new().unwrap();
+        let mut options = CompileOptions::new().unwrap();
+        options.set_optimization_level(OptimizationLevel::Performance);
+        let result = c.compile_into_spirv_assembly(
+            TWO_FN,
+            ShaderKind::Vertex,
+            "shader.glsl",
+            "main",
+            Some(&options),
+        ).unwrap();
+        assert!(!result.as_text().contains("OpFunctionCall"));
     }
 
     #[test]
