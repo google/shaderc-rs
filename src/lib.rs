@@ -58,7 +58,7 @@ extern crate libc;
 #[macro_use]
 extern crate assert_matches;
 
-use libc::{c_char, c_int, c_void, size_t, int32_t, uint32_t};
+use libc::{c_char, c_int, c_void, size_t, int32_t, uint32_t, uint8_t};
 use std::{error, fmt, ptr, result, slice, str};
 use std::ffi::{CStr, CString};
 use std::cell::RefCell;
@@ -1027,6 +1027,26 @@ impl CompilationArtifact {
         unsafe {
             let p = ffi::shaderc_result_get_bytes(self.raw);
             slice::from_raw_parts(p as *const uint32_t, num_words)
+        }
+    }
+
+    /// Returns the compilation output data as a binary slice.
+    /// This method return a &[u8] that implement the Read trait.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the compilation does not generate a
+    /// binary output.
+    pub fn as_binary_u8(&self) -> &[u8] {
+        if !self.is_binary {
+            panic!("not binary result")
+        }
+
+        assert_eq!(0, self.len() % 4);
+
+        unsafe {
+            let p = ffi::shaderc_result_get_bytes(self.raw);
+            slice::from_raw_parts(p as *const uint8_t, self.len())
         }
     }
 
