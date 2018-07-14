@@ -1169,7 +1169,7 @@ void main() {
     static VOID_MAIN_ASSEMBLY: &'static str = "\
 ; SPIR-V
 ; Version: 1.0
-; Generator: Google Shaderc over Glslang; 6
+; Generator: Google Shaderc over Glslang; 7
 ; Bound: 6
 ; Schema: 0
                OpCapability Shader
