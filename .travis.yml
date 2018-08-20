@@ -21,7 +21,7 @@ before_script:
   - git submodule update --init
 
 script:
-  - cargo build --verbose
+  - travis_wait cargo build --verbose
   - cargo test --verbose
 
 notifications:
