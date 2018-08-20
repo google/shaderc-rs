@@ -6,7 +6,7 @@
 	url = https://github.com/KhronosGroup/SPIRV-Tools.git
 [submodule "build/glslang"]
 	path = build/glslang
-	url = https://github.com/google/glslang.git
+	url = https://github.com/KhronosGroup/glslang.git
 [submodule "build/shaderc"]
 	path = build/shaderc
 	url = https://github.com/google/shaderc.git
