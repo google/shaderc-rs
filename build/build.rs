@@ -30,20 +30,20 @@ fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
 
 fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     cmake::Config::new(shaderc_dir)
-            .profile("Release")
-            .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
-            .define("SPIRV_SKIP_EXECUTABLES", "ON")
-            .define("SPIRV_WERROR", "OFF")
-            .define("SHADERC_SKIP_TESTS", "ON")
-            // cmake-rs tries to be clever on Windows by injecting several
-            // C/C++ flags, which causes problems. So I have to manually
-            // define CMAKE_*_FLAGS_* here to suppress that.
-            .define("CMAKE_C_FLAGS", " /nologo /EHsc")
-            .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
-            .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
-            .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
-            .define("CMAKE_INSTALL_LIBDIR", "lib")
-            .build()
+        .profile("Release")
+        .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        .define("SPIRV_SKIP_EXECUTABLES", "ON")
+        .define("SPIRV_WERROR", "OFF")
+        .define("SHADERC_SKIP_TESTS", "ON")
+        // cmake-rs tries to be clever on Windows by injecting several
+        // C/C++ flags, which causes problems. So I have to manually
+        // define CMAKE_*_FLAGS_* here to suppress that.
+        .define("CMAKE_C_FLAGS", " /nologo /EHsc")
+        .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
+        .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
+        .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
+        .build()
 }
 
 fn main() {
