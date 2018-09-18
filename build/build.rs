@@ -18,14 +18,14 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
-        cmake::Config::new(shaderc_dir)
-            .profile("Release")
-            .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
-            .define("SPIRV_SKIP_EXECUTABLES", "ON")
-            .define("SPIRV_WERROR", "OFF")
-            .define("SHADERC_SKIP_TESTS", "ON")
-            .define("CMAKE_INSTALL_LIBDIR", "lib")
-            .build()
+    cmake::Config::new(shaderc_dir)
+        .profile("Release")
+        .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        .define("SPIRV_SKIP_EXECUTABLES", "ON")
+        .define("SPIRV_WERROR", "OFF")
+        .define("SHADERC_SKIP_TESTS", "ON")
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
+        .build()
 }
 
 fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
@@ -49,7 +49,7 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
 fn main() {
     if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
         println!("cargo:warning=requested to skip building native C++ shaderc");
-        return
+        return;
     }
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
@@ -68,9 +68,19 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib=static=shaderc_combined");
-    if target_os == "linux" {
-        println!("cargo:rustc-link-lib=dylib=stdc++");
-    } else if target_os == "macos" {
-        println!("cargo:rustc-link-lib=dylib=c++");
+
+    match (target_os.as_str(), target_env.as_str()) {
+        ("linux", _) => println!("cargo:rustc-link-lib=dylib=stdc++"),
+        ("macos", _) => println!("cargo:rustc-link-lib=dylib=c++"),
+        ("windows", "gnu") => {
+            println!("cargo:rustc-link-lib=dylib=stdc++");
+
+            // linking to these are needed for doctests as proc-macros; see:
+            // https://github.com/rust-lang/rust/issues/41607
+            println!("cargo:rustc-link-lib=dylib=gcc_eh");
+            println!("cargo:rustc-link-lib=dylib=pthread");
+            println!("cargo:rustc-link-lib=dylib=msvcrt");
+        }
+        _ => {}
     }
 }
