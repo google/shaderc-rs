@@ -20,11 +20,12 @@ matrix:
     - channel: nightly
 
 install:
+  - echo %PATH%
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init -yv --default-toolchain %channel% --default-host %host%
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - if not %target% == %host% rustup target add %target%
-  - if defined mingw set PATH=%PATH%;C:\mingw-w64\%mingw%\mingw64\bin
+  - if defined mingw set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\mingw-w64\%mingw%\mingw64\bin
   - rustc -vV && cargo -vV && if defined mingw gcc --version
 
 build:
