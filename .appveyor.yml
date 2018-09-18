@@ -25,17 +25,18 @@ install:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - if not %target% == %host% rustup target add %target%
   - if defined mingw set PATH=%PATH%;C:\mingw-w64\%mingw%\bin
-  - rustc -vV && cargo -vV && if defined mingw gcc --version
+  - rustc -vV && cargo -vV && dir /b /s C:\mingw-w64\ && if defined mingw gcc --version
 
 build:
   parallel: true
   verbosity: minimal
 
 before_build:
+  - exit 1
   - git submodule update --init
 
 build_script:
-  - cargo build --verbose --target 
+  - cargo build --verbose --target %target%
 
 test_script:
-  - cargo test --verbose
+  - cargo test --verbose --target %target%
