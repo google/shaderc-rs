@@ -70,17 +70,8 @@ fn main() {
     println!("cargo:rustc-link-lib=static=shaderc_combined");
 
     match (target_os.as_str(), target_env.as_str()) {
-        ("linux", _) => println!("cargo:rustc-link-lib=dylib=stdc++"),
+        ("linux", _) | ("windows", "gnu") => println!("cargo:rustc-link-lib=dylib=stdc++"),
         ("macos", _) => println!("cargo:rustc-link-lib=dylib=c++"),
-        ("windows", "gnu") => {
-            println!("cargo:rustc-link-lib=dylib=stdc++");
-
-            // linking to these are needed for doctests as proc-macros; see:
-            // https://github.com/rust-lang/rust/issues/41607
-            println!("cargo:rustc-link-lib=dylib=gcc_eh");
-            println!("cargo:rustc-link-lib=dylib=pthread");
-            println!("cargo:rustc-link-lib=dylib=msvcrt");
-        }
         _ => {}
     }
 }
