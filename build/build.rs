@@ -18,38 +18,38 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
-        cmake::Config::new(shaderc_dir)
-            .profile("Release")
-            .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
-            .define("SPIRV_SKIP_EXECUTABLES", "ON")
-            .define("SPIRV_WERROR", "OFF")
-            .define("SHADERC_SKIP_TESTS", "ON")
-            .define("CMAKE_INSTALL_LIBDIR", "lib")
-            .build()
+    cmake::Config::new(shaderc_dir)
+        .profile("Release")
+        .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        .define("SPIRV_SKIP_EXECUTABLES", "ON")
+        .define("SPIRV_WERROR", "OFF")
+        .define("SHADERC_SKIP_TESTS", "ON")
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
+        .build()
 }
 
 fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     cmake::Config::new(shaderc_dir)
-            .profile("Release")
-            .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
-            .define("SPIRV_SKIP_EXECUTABLES", "ON")
-            .define("SPIRV_WERROR", "OFF")
-            .define("SHADERC_SKIP_TESTS", "ON")
-            // cmake-rs tries to be clever on Windows by injecting several
-            // C/C++ flags, which causes problems. So I have to manually
-            // define CMAKE_*_FLAGS_* here to suppress that.
-            .define("CMAKE_C_FLAGS", " /nologo /EHsc")
-            .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
-            .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
-            .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
-            .define("CMAKE_INSTALL_LIBDIR", "lib")
-            .build()
+        .profile("Release")
+        .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        .define("SPIRV_SKIP_EXECUTABLES", "ON")
+        .define("SPIRV_WERROR", "OFF")
+        .define("SHADERC_SKIP_TESTS", "ON")
+        // cmake-rs tries to be clever on Windows by injecting several
+        // C/C++ flags, which causes problems. So I have to manually
+        // define CMAKE_*_FLAGS_* here to suppress that.
+        .define("CMAKE_C_FLAGS", " /nologo /EHsc")
+        .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
+        .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
+        .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
+        .build()
 }
 
 fn main() {
     if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
         println!("cargo:warning=requested to skip building native C++ shaderc");
-        return
+        return;
     }
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
@@ -68,9 +68,10 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib=static=shaderc_combined");
-    if target_os == "linux" {
-        println!("cargo:rustc-link-lib=dylib=stdc++");
-    } else if target_os == "macos" {
-        println!("cargo:rustc-link-lib=dylib=c++");
+
+    match (target_os.as_str(), target_env.as_str()) {
+        ("linux", _) | ("windows", "gnu") => println!("cargo:rustc-link-lib=dylib=stdc++"),
+        ("macos", _) => println!("cargo:rustc-link-lib=dylib=c++"),
+        _ => {}
     }
 }
