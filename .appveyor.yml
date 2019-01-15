@@ -35,7 +35,11 @@ before_build:
   - git submodule update --init
 
 build_script:
-  - cargo build --verbose --target %target%
+  # Because that MSBUild does not support path longer than MAX_PATH
+  # (https://github.com/Microsoft/msbuild/issues/53),
+  # we need to reset the target diretory here to save a few characters
+  # in the path.
+  - cargo build --verbose --target %target% --target-dir C:/
 
 test_script:
-  - cargo test --verbose --target %target%
+  - cargo test --verbose --target %target% --target-dir C:/
