@@ -24,8 +24,19 @@ install:
   - rustup-init -yv --default-toolchain %channel% --default-host %host%
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - if not %target% == %host% rustup target add %target%
+  - rustc -vV && cargo -vV
+
+  # Because that MSBUild does not support path longer than MAX_PATH
+  # (https://github.com/Microsoft/msbuild/issues/53),
+  # we use ninja to build.
+  - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip"
+  - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\projects\deps\ninja > nul
+  - set PATH=%PATH%;C:\projects\deps\ninja
+  - ninja --version
+
   - if defined mingw set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\mingw-w64\%mingw%\mingw64\bin
-  - rustc -vV && cargo -vV && if defined mingw gcc --version
+  - if defined mingw gcc --version
 
 build:
   parallel: true
@@ -35,11 +46,7 @@ before_build:
   - git submodule update --init
 
 build_script:
-  # Because that MSBUild does not support path longer than MAX_PATH
-  # (https://github.com/Microsoft/msbuild/issues/53),
-  # we need to reset the target diretory here to save a few characters
-  # in the path.
-  - cargo build --verbose --target %target% --target-dir C:/
+  - cargo build --verbose --target %target%
 
 test_script:
-  - cargo test --verbose --target %target% --target-dir C:/
+  - cargo test --verbose --target %target%
