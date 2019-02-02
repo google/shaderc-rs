@@ -82,8 +82,12 @@ Setup
 
 To build the shaderc-rs crate, the following tools must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
+- [Git](https://git-scm.com/)
 - [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on windows the executable must be named `python.exe`)
 - a C++11 compiler
+
+Additionally, the build script can auto detect and use the following if they are on `PATH`:
+- [Ninja](https://github.com/ninja-build/ninja/releases)
 
 These requirements can be either installed with your favourite package manager or with installers
 from the projects' websites. Below are some example ways to get setup.
@@ -95,6 +99,13 @@ from the projects' websites. Below are some example ways to get setup.
 3.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
 4.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-python2`
 5.  Add the msys2 mingw64 binary path to the PATH environment variable.
+
+NOTE: On Windows if building with MSBuild (the default), it may fail because of
+file path too long. That is a [limitation of MSBuild](https://github.com/Microsoft/msbuild/issues/53).
+You can work around either by set the target directory to a shallower one using
+`cargo --target-dir`, or [download Ninja](https://github.com/ninja-build/ninja/releases)
+and make it accessible on `PATH`. The build script will automatically detect
+and use Ninja instead of MSBuild.
 
 ### windows-gnu Example Setup
 
