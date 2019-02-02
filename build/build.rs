@@ -14,23 +14,28 @@
 
 extern crate cmake;
 
+mod cmd_finder;
+
 use std::env;
 use std::path::{Path, PathBuf};
 
-fn build_shaderc(shaderc_dir: &PathBuf) -> PathBuf {
-    cmake::Config::new(shaderc_dir)
-        .profile("Release")
+fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
+    let mut config = cmake::Config::new(shaderc_dir);
+    config.profile("Release")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
         .define("SHADERC_SKIP_TESTS", "ON")
-        .define("CMAKE_INSTALL_LIBDIR", "lib")
-        .build()
+        .define("CMAKE_INSTALL_LIBDIR", "lib");
+    if use_ninja {
+        config.generator("Ninja");
+    }
+    config.build()
 }
 
-fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
-    cmake::Config::new(shaderc_dir)
-        .profile("Release")
+fn build_shaderc_msvc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
+    let mut config = cmake::Config::new(shaderc_dir);
+    config.profile("Release")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
@@ -42,8 +47,11 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
         .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
         .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
         .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
-        .define("CMAKE_INSTALL_LIBDIR", "lib")
-        .build()
+        .define("CMAKE_INSTALL_LIBDIR", "lib");
+    if use_ninja {
+        config.generator("Ninja");
+    }
+    config.build()
 }
 
 fn main() {
@@ -56,6 +64,14 @@ fn main() {
         return;
     }
 
+    let mut finder = cmd_finder::CommandFinder::new();
+
+    finder.must_have("cmake");
+    finder.must_have("git");
+    finder.must_have("python");
+
+    let has_ninja = finder.maybe_have("ninja").is_some();
+
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
 
@@ -63,9 +79,9 @@ fn main() {
     let shaderc_dir = Path::new(&manifest_dir).join("build");
 
     let mut lib_path = if target_env == "msvc" {
-        build_shaderc_msvc(&shaderc_dir)
+        build_shaderc_msvc(&shaderc_dir, has_ninja)
     } else {
-        build_shaderc(&shaderc_dir)
+        build_shaderc(&shaderc_dir, has_ninja)
     };
 
     lib_path.push("lib");
