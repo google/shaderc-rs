@@ -48,7 +48,11 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
 
 fn main() {
     if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
-        println!("cargo:warning=requested to skip building native C++ shaderc");
+        let out_dir = env::var("OUT_DIR").unwrap();
+        println!("cargo:warning=Requested to skip building native C++ shaderc.");
+        println!("cargo:warning=Searching {} for shaderc_combined static lib...", out_dir);
+        println!("cargo:rustc-link-search=native={}", out_dir);
+        println!("cargo:rustc-link-lib=static=shaderc_combined");
         return;
     }
 

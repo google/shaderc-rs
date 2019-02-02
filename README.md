@@ -19,11 +19,11 @@ Usage
 This library uses [`build.rs`](build/build.rs) to automatically check out
 and compile a copy of native C++ shaderc and link to the generated artifacts,
 which requires `git`, `cmake`, and `python` existing in the `PATH`.
+
 To turn off this feature, specify `--no-default-features` when building.
-But then you will need to place a copy of the `shaderc_combined` library
-(on Windows) or the `shaderc_shared` library (on Linux and macOS) to a location
-that is scanned by the linker (e.g., the `deps` directory within the `target`
-directory).
+But then you will need to place a copy of the `shaderc_combined` static library
+to the location (printed out in the warning message) that is scanned by the
+linker.
 
 First add to your `Cargo.toml`:
 
