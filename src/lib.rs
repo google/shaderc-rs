@@ -18,14 +18,21 @@
 //! for compiling GLSL/HLSL source code to SPIRV modules. It has been shipping
 //! in the Android NDK since version r12b.
 //!
-//! This library uses `build.rs` to automatically check out and compile a
-//! copy of native C++ shaderc and link to the generated artifacts, which
-//! requires `git`, `cmake`, and `python` existing in the `PATH`. To turn
-//! off this feature, specify `--no-default-features` when building. But then
-//! you will need to place a copy of the `shaderc_combined` library
-//! (`libshaderc_combined.a` on Unix like systems and `shaderc_combined.lib`
-//! on Windows) to a location that is scanned by the linker (e.g., the `deps`
-//! directory within the `target` directory).
+//! This library uses [`build.rs`](build/build.rs) to automatically check out
+//! and compile a copy of native C++ shaderc and link to the generated
+//! artifacts, which requires `git`, `cmake`, and `python` existing in the
+//! `PATH`.
+//!
+//! To turn off this feature, specify `--no-default-features` when building.
+//! But then you will need to place a copy of the `shaderc_combined` static
+//! library to the location (printed out in the warning message) that is
+//! scanned by the linker.
+//!
+//! The build script also tries to check whether [Ninja](https://ninja-build.org/)
+//! is available on `PATH`. If true, Ninja is used to compile native C++
+//! shaderc. It is generally faster that way, and it does not suffer from the
+//! `MAX_PATH` limitation that MSBuild, the default for building using MSVC,
+//! has.
 //!
 //! # Examples
 //!
