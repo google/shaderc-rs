@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate cmake;
-
 mod cmd_finder;
 
 use std::env;
@@ -21,7 +19,8 @@ use std::path::{Path, PathBuf};
 
 fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
-    config.profile("Release")
+    config
+        .profile("Release")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
@@ -35,7 +34,8 @@ fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
 
 fn build_shaderc_msvc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
-    config.profile("Release")
+    config
+        .profile("Release")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
@@ -58,7 +58,10 @@ fn main() {
     if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
         let out_dir = env::var("OUT_DIR").unwrap();
         println!("cargo:warning=Requested to skip building native C++ shaderc.");
-        println!("cargo:warning=Searching {} for shaderc_combined static lib...", out_dir);
+        println!(
+            "cargo:warning=Searching {} for shaderc_combined static lib...",
+            out_dir
+        );
         println!("cargo:rustc-link-search=native={}", out_dir);
         println!("cargo:rustc-link-lib=static=shaderc_combined");
         return;

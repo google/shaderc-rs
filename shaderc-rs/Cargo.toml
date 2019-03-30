@@ -1,0 +1,20 @@
+[package]
+name = "shaderc"
+version = "0.4.1"
+authors = ["Lei Zhang <antiagainst@gmail.com>"]
+description = "Rust bindings for shaderc"
+documentation = "https://docs.rs/shaderc"
+repository = "https://github.com/google/shaderc-rs"
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["shader", "compiler", "spirv", "glsl", "hlsl"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+libc = "0.2"
+shaderc-sys = { version = "0.4.1", path = "../shaderc-sys" }
+
+[dev-dependencies]
+assert_matches = "1.3"

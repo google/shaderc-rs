@@ -64,15 +64,15 @@ extern crate libc;
 #[cfg(test)]
 #[macro_use]
 extern crate assert_matches;
+extern crate shaderc_sys;
 
-use libc::{c_char, c_int, c_void, size_t, int32_t, uint32_t, uint8_t};
-use std::{error, fmt, ptr, result, slice, str};
-use std::ffi::{CStr, CString};
-use std::cell::RefCell;
+use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t, uint8_t};
+use shaderc_sys as scs;
 use std::any::Any;
+use std::cell::RefCell;
+use std::ffi::{CStr, CString};
 use std::panic;
-
-mod ffi;
+use std::{error, fmt, ptr, result, slice, str};
 
 /// Error.
 ///
@@ -338,7 +338,7 @@ pub enum Limit {
 /// Creating an `Compiler` object has substantial resource costs; so it is
 /// recommended to keep one object around for all tasks.
 pub struct Compiler {
-    raw: *mut ffi::ShadercCompiler,
+    raw: *mut scs::ShadercCompiler,
 }
 
 fn propagate_panic<F, T>(f: F) -> T
@@ -385,7 +385,7 @@ impl Compiler {
     /// A return of `None` indicates that there was an error initializing
     /// the underlying compiler.
     pub fn new() -> Option<Compiler> {
-        let p = unsafe { ffi::shaderc_compiler_initialize() };
+        let p = unsafe { scs::shaderc_compiler_initialize() };
         if p.is_null() {
             None
         } else {
@@ -394,16 +394,16 @@ impl Compiler {
     }
 
     fn handle_compilation_result(
-        result: *mut ffi::ShadercCompilationResult,
+        result: *mut scs::ShadercCompilationResult,
         is_binary: bool,
     ) -> Result<CompilationArtifact> {
-        let status = unsafe { ffi::shaderc_result_get_compilation_status(result) };
+        let status = unsafe { scs::shaderc_result_get_compilation_status(result) };
         if status == 0 {
             Ok(CompilationArtifact::new(result, is_binary))
         } else {
-            let num_errors = unsafe { ffi::shaderc_result_get_num_errors(result) } as u32;
+            let num_errors = unsafe { scs::shaderc_result_get_num_errors(result) } as u32;
             let reason = unsafe {
-                let p = ffi::shaderc_result_get_error_message(result);
+                let p = scs::shaderc_result_get_error_message(result);
                 let bytes = CStr::from_ptr(p).to_bytes();
                 safe_str_from_utf8(bytes)
             };
@@ -454,7 +454,7 @@ impl Compiler {
             CString::new(entry_point_name).expect("cannot convert entry_point_name to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_compile_into_spv(
+                scs::shaderc_compile_into_spv(
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
@@ -490,7 +490,7 @@ impl Compiler {
             CString::new(entry_point_name).expect("cannot convert entry_point_name to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_compile_into_spv_assembly(
+                scs::shaderc_compile_into_spv_assembly(
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
@@ -521,7 +521,7 @@ impl Compiler {
             CString::new(entry_point_name).expect("cannot convert entry_point_name to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_compile_into_preprocessed_text(
+                scs::shaderc_compile_into_preprocessed_text(
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
@@ -555,7 +555,7 @@ impl Compiler {
             CString::new(source_assembly).expect("cannot convert source_assembly to c string");
         propagate_panic(|| {
             let result = unsafe {
-                ffi::shaderc_assemble_into_spv(
+                scs::shaderc_assemble_into_spv(
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
@@ -569,13 +569,13 @@ impl Compiler {
 
 impl Drop for Compiler {
     fn drop(&mut self) {
-        unsafe { ffi::shaderc_compiler_release(self.raw) }
+        unsafe { scs::shaderc_compiler_release(self.raw) }
     }
 }
 
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
-    raw: *mut ffi::ShadercCompileOptions,
+    raw: *mut scs::ShadercCompileOptions,
     f: Option<
         Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>,
     >,
@@ -617,7 +617,7 @@ impl<'a> CompileOptions<'a> {
     /// A return of `None` indicates that there was an error initializing
     /// the underlying options object.
     pub fn new() -> Option<CompileOptions<'a>> {
-        let p = unsafe { ffi::shaderc_compile_options_initialize() };
+        let p = unsafe { scs::shaderc_compile_options_initialize() };
         if p.is_null() {
             None
         } else {
@@ -630,7 +630,7 @@ impl<'a> CompileOptions<'a> {
     /// A return of `None` indicates that there was an error copying
     /// the underlying options object.
     pub fn clone(&self) -> Option<CompileOptions> {
-        let p = unsafe { ffi::shaderc_compile_options_clone(self.raw) };
+        let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
         if p.is_null() {
             None
         } else {
@@ -646,14 +646,14 @@ impl<'a> CompileOptions<'a> {
     /// `version` will be used for distinguishing between different versions
     /// of the target environment. "0" is the only supported value right now.
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
-        unsafe { ffi::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
+        unsafe { scs::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
     }
 
     /// Sets the source language.
     ///
     /// The default is GLSL if not set.
     pub fn set_source_language(&mut self, language: SourceLanguage) {
-        unsafe { ffi::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
+        unsafe { scs::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
     }
 
     /// Forces the GLSL language `version` and `profile`.
@@ -665,7 +665,7 @@ impl<'a> CompileOptions<'a> {
     /// e.g., version below 150.
     pub fn set_forced_version_profile(&mut self, version: u32, profile: GlslProfile) {
         unsafe {
-            ffi::shaderc_compile_options_set_forced_version_profile(
+            scs::shaderc_compile_options_set_forced_version_profile(
                 self.raw,
                 version as c_int,
                 profile as int32_t,
@@ -704,7 +704,7 @@ impl<'a> CompileOptions<'a> {
                 >,
         );
         unsafe {
-            ffi::shaderc_compile_options_set_include_callbacks(
+            scs::shaderc_compile_options_set_include_callbacks(
                 self.raw,
                 resolver::<'a, F>,
                 releaser,
@@ -715,12 +715,12 @@ impl<'a> CompileOptions<'a> {
         struct OkResultWrapper {
             source_name: CString,
             content: CString,
-            wrapped: ffi::shaderc_include_result,
+            wrapped: scs::shaderc_include_result,
         }
 
         struct ErrResultWrapper {
             error_message: CString,
-            wrapped: ffi::shaderc_include_result,
+            wrapped: scs::shaderc_include_result,
         }
 
         extern "C" fn resolver<'a, F>(
@@ -729,7 +729,7 @@ impl<'a> CompileOptions<'a> {
             type_: c_int,
             requesting_source: *const c_char,
             include_depth: size_t,
-        ) -> *mut ffi::shaderc_include_result
+        ) -> *mut scs::shaderc_include_result
         where
             F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
         {
@@ -760,14 +760,14 @@ impl<'a> CompileOptions<'a> {
                             content: CString::new(content).expect("include callback: could not convert content string to a c string"),
                             wrapped: unsafe { mem::zeroed() },
                         });
-                        result.wrapped = ffi::shaderc_include_result {
+                        result.wrapped = scs::shaderc_include_result {
                             source_name: result.source_name.as_ptr(),
                             source_name_length: result.source_name.as_bytes().len(),
                             content: result.content.as_ptr(),
                             content_length: result.content.as_bytes().len(),
                             user_data: &mut *result as *mut OkResultWrapper as *mut c_void,
                         };
-                        let r = &mut result.wrapped as *mut ffi::shaderc_include_result;
+                        let r = &mut result.wrapped as *mut scs::shaderc_include_result;
                         mem::forget(result);
                         r
                     }
@@ -778,14 +778,14 @@ impl<'a> CompileOptions<'a> {
                             ),
                             wrapped: unsafe { mem::zeroed() },
                         });
-                        result.wrapped = ffi::shaderc_include_result {
+                        result.wrapped = scs::shaderc_include_result {
                             source_name: CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
                             source_name_length: 0,
                             content: result.error_message.as_ptr(),
                             content_length: result.error_message.as_bytes().len(),
                             user_data: &mut *result as *mut ErrResultWrapper as *mut c_void,
                         };
-                        let r = &mut result.wrapped as *mut ffi::shaderc_include_result;
+                        let r = &mut result.wrapped as *mut scs::shaderc_include_result;
                         mem::forget(result);
                         r
                     }
@@ -801,21 +801,21 @@ impl<'a> CompileOptions<'a> {
                         error_message: CString::new("").unwrap(),
                         wrapped: unsafe { mem::zeroed() },
                     });
-                    result.wrapped = ffi::shaderc_include_result {
+                    result.wrapped = scs::shaderc_include_result {
                         source_name: CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
                         source_name_length: 0,
                         content: result.error_message.as_ptr(),
                         content_length: 0,
                         user_data: &mut *result as *mut ErrResultWrapper as *mut c_void,
                     };
-                    let r = &mut result.wrapped as *mut ffi::shaderc_include_result;
+                    let r = &mut result.wrapped as *mut scs::shaderc_include_result;
                     mem::forget(result);
                     r
                 }
             }
         }
 
-        extern "C" fn releaser(_: *mut c_void, include_result: *mut ffi::shaderc_include_result) {
+        extern "C" fn releaser(_: *mut c_void, include_result: *mut scs::shaderc_include_result) {
             let user_data = unsafe { &*include_result }.user_data;
             if unsafe { &*include_result }.source_name_length == 0 {
                 let wrapper = unsafe { Box::from_raw(user_data as *mut ErrResultWrapper) };
@@ -830,7 +830,7 @@ impl<'a> CompileOptions<'a> {
     /// Sets the resource `limit` to the given `value`.
     pub fn set_limit(&mut self, limit: Limit, value: i32) {
         unsafe {
-            ffi::shaderc_compile_options_set_limit(self.raw, limit as int32_t, value as c_int)
+            scs::shaderc_compile_options_set_limit(self.raw, limit as int32_t, value as c_int)
         }
     }
 
@@ -838,7 +838,7 @@ impl<'a> CompileOptions<'a> {
     /// that aren't already explicitly bound in the shader source.
     pub fn set_auto_bind_uniforms(&mut self, auto_bind: bool) {
         unsafe {
-            ffi::shaderc_compile_options_set_auto_bind_uniforms(self.raw, auto_bind);
+            scs::shaderc_compile_options_set_auto_bind_uniforms(self.raw, auto_bind);
         }
     }
 
@@ -847,7 +847,7 @@ impl<'a> CompileOptions<'a> {
     /// Defaults to false.
     pub fn set_hlsl_io_mapping(&mut self, hlsl_iomap: bool) {
         unsafe {
-            ffi::shaderc_compile_options_set_hlsl_io_mapping(self.raw, hlsl_iomap);
+            scs::shaderc_compile_options_set_hlsl_io_mapping(self.raw, hlsl_iomap);
         }
     }
 
@@ -858,7 +858,7 @@ impl<'a> CompileOptions<'a> {
     /// used when compiling HLSL.
     pub fn set_hlsl_offsets(&mut self, hlsl_offsets: bool) {
         unsafe {
-            ffi::shaderc_compile_options_set_hlsl_offsets(self.raw, hlsl_offsets);
+            scs::shaderc_compile_options_set_hlsl_offsets(self.raw, hlsl_offsets);
         }
     }
 
@@ -870,7 +870,7 @@ impl<'a> CompileOptions<'a> {
     /// to this specified base.
     pub fn set_binding_base(&mut self, resource_kind: ResourceKind, base: u32) {
         unsafe {
-            ffi::shaderc_compile_options_set_binding_base(self.raw, resource_kind as int32_t, base);
+            scs::shaderc_compile_options_set_binding_base(self.raw, resource_kind as int32_t, base);
         }
     }
 
@@ -882,7 +882,7 @@ impl<'a> CompileOptions<'a> {
         base: u32,
     ) {
         unsafe {
-            ffi::shaderc_compile_options_set_binding_base_for_stage(
+            scs::shaderc_compile_options_set_binding_base_for_stage(
                 self.raw,
                 shader_kind as int32_t,
                 resource_kind as int32_t,
@@ -897,7 +897,7 @@ impl<'a> CompileOptions<'a> {
         let c_set = CString::new(set).expect("cannot convert string to c string");
         let c_binding = CString::new(binding).expect("cannot convert string to c string");
         unsafe {
-            ffi::shaderc_compile_options_set_hlsl_register_set_and_binding(
+            scs::shaderc_compile_options_set_hlsl_register_set_and_binding(
                 self.raw,
                 c_register.as_ptr(),
                 c_set.as_ptr(),
@@ -919,7 +919,7 @@ impl<'a> CompileOptions<'a> {
         let c_set = CString::new(set).expect("cannot convert string to c string");
         let c_binding = CString::new(binding).expect("cannot convert string to c string");
         unsafe {
-            ffi::shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
+            scs::shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
                 self.raw,
                 kind as int32_t,
                 c_register.as_ptr(),
@@ -942,7 +942,7 @@ impl<'a> CompileOptions<'a> {
             let value = value.unwrap();
             let c_value = CString::new(value).expect("cannot convert value to c string");
             unsafe {
-                ffi::shaderc_compile_options_add_macro_definition(
+                scs::shaderc_compile_options_add_macro_definition(
                     self.raw,
                     c_name.as_ptr(),
                     name.len(),
@@ -952,7 +952,7 @@ impl<'a> CompileOptions<'a> {
             }
         } else {
             unsafe {
-                ffi::shaderc_compile_options_add_macro_definition(
+                scs::shaderc_compile_options_add_macro_definition(
                     self.raw,
                     c_name.as_ptr(),
                     name.len(),
@@ -967,12 +967,12 @@ impl<'a> CompileOptions<'a> {
     ///
     /// If mulitple invocations for this method, only the last one takes effect.
     pub fn set_optimization_level(&mut self, level: OptimizationLevel) {
-        unsafe { ffi::shaderc_compile_options_set_optimization_level(self.raw, level as int32_t) }
+        unsafe { scs::shaderc_compile_options_set_optimization_level(self.raw, level as int32_t) }
     }
 
     /// Sets the compiler mode to generate debug information in the output.
     pub fn set_generate_debug_info(&mut self) {
-        unsafe { ffi::shaderc_compile_options_set_generate_debug_info(self.raw) }
+        unsafe { scs::shaderc_compile_options_set_generate_debug_info(self.raw) }
     }
 
     /// Sets the compiler mode to suppress warnings.
@@ -981,31 +981,31 @@ impl<'a> CompileOptions<'a> {
     /// warnings-as-errors modes are turned on, warning messages will be
     /// inhibited, and will not be emitted as error messages.
     pub fn set_suppress_warnings(&mut self) {
-        unsafe { ffi::shaderc_compile_options_set_suppress_warnings(self.raw) }
+        unsafe { scs::shaderc_compile_options_set_suppress_warnings(self.raw) }
     }
 
     /// Sets the compiler mode to treat all warnings as errors.
     ///
     /// Note that the suppress-warnings mode overrides this.
     pub fn set_warnings_as_errors(&mut self) {
-        unsafe { ffi::shaderc_compile_options_set_warnings_as_errors(self.raw) }
+        unsafe { scs::shaderc_compile_options_set_warnings_as_errors(self.raw) }
     }
 }
 
 impl<'a> Drop for CompileOptions<'a> {
     fn drop(&mut self) {
-        unsafe { ffi::shaderc_compile_options_release(self.raw) }
+        unsafe { scs::shaderc_compile_options_release(self.raw) }
     }
 }
 
 /// An opaque object containing the results of compilation.
 pub struct CompilationArtifact {
-    raw: *mut ffi::ShadercCompilationResult,
+    raw: *mut scs::ShadercCompilationResult,
     is_binary: bool,
 }
 
 impl CompilationArtifact {
-    fn new(result: *mut ffi::ShadercCompilationResult, is_binary: bool) -> CompilationArtifact {
+    fn new(result: *mut scs::ShadercCompilationResult, is_binary: bool) -> CompilationArtifact {
         CompilationArtifact {
             raw: result,
             is_binary: is_binary,
@@ -1014,7 +1014,7 @@ impl CompilationArtifact {
 
     /// Returns the number of bytes of the compilation output data.
     pub fn len(&self) -> usize {
-        unsafe { ffi::shaderc_result_get_length(self.raw) }
+        unsafe { scs::shaderc_result_get_length(self.raw) }
     }
 
     /// Returns the compilation output data as a binary slice.
@@ -1032,7 +1032,7 @@ impl CompilationArtifact {
         let num_words = self.len() / 4;
 
         unsafe {
-            let p = ffi::shaderc_result_get_bytes(self.raw);
+            let p = scs::shaderc_result_get_bytes(self.raw);
             slice::from_raw_parts(p as *const uint32_t, num_words)
         }
     }
@@ -1052,7 +1052,7 @@ impl CompilationArtifact {
         assert_eq!(0, self.len() % 4);
 
         unsafe {
-            let p = ffi::shaderc_result_get_bytes(self.raw);
+            let p = scs::shaderc_result_get_bytes(self.raw);
             slice::from_raw_parts(p as *const uint8_t, self.len())
         }
     }
@@ -1068,7 +1068,7 @@ impl CompilationArtifact {
             panic!("not text result")
         }
         unsafe {
-            let p = ffi::shaderc_result_get_bytes(self.raw);
+            let p = scs::shaderc_result_get_bytes(self.raw);
             let bytes = CStr::from_ptr(p).to_bytes();
             str::from_utf8(bytes)
                 .ok()
@@ -1079,13 +1079,13 @@ impl CompilationArtifact {
 
     /// Returns the number of warnings generated during the compilation.
     pub fn get_num_warnings(&self) -> u32 {
-        (unsafe { ffi::shaderc_result_get_num_warnings(self.raw) }) as u32
+        (unsafe { scs::shaderc_result_get_num_warnings(self.raw) }) as u32
     }
 
     /// Returns the detailed warnings as a string.
     pub fn get_warning_messages(&self) -> String {
         unsafe {
-            let p = ffi::shaderc_result_get_error_message(self.raw);
+            let p = scs::shaderc_result_get_error_message(self.raw);
             let bytes = CStr::from_ptr(p).to_bytes();
             safe_str_from_utf8(bytes)
         }
@@ -1094,7 +1094,7 @@ impl CompilationArtifact {
 
 impl Drop for CompilationArtifact {
     fn drop(&mut self) {
-        unsafe { ffi::shaderc_result_release(self.raw) }
+        unsafe { scs::shaderc_result_release(self.raw) }
     }
 }
 
@@ -1106,7 +1106,7 @@ impl Drop for CompilationArtifact {
 pub fn get_spirv_version() -> (u32, u32) {
     let mut version: i32 = 0;
     let mut revision: i32 = 0;
-    unsafe { ffi::shaderc_get_spv_version(&mut version, &mut revision) };
+    unsafe { scs::shaderc_get_spv_version(&mut version, &mut revision) };
     (version as u32, revision as u32)
 }
 
@@ -1119,7 +1119,7 @@ pub fn parse_version_profile(string: &str) -> Option<(u32, GlslProfile)> {
     let mut profile: i32 = 0;
     let c_string = CString::new(string).expect("cannot convert string to c string");
     let result = unsafe {
-        ffi::shaderc_parse_version_profile(c_string.as_ptr(), &mut version, &mut profile)
+        scs::shaderc_parse_version_profile(c_string.as_ptr(), &mut version, &mut profile)
     };
     if result == false {
         None

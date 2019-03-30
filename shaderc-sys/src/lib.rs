@@ -13,7 +13,8 @@
 // limitations under the License.
 #![allow(non_camel_case_types)]
 
-use libc::{c_char, c_int, c_void, size_t, int32_t, uint32_t};
+extern crate libc;
+use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t};
 
 pub enum ShadercCompiler {}
 pub enum ShadercCompileOptions {}
