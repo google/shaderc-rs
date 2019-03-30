@@ -15,8 +15,8 @@ links = "shaderc"
 name = "shaderc_sys"
 
 [features]
-default = ["build-native-shaderc"]
-build-native-shaderc = []  # Clone and build the native C++ shaderc project
+check-passthrough = []
+dont-use-deprecated = []
 
 [dependencies]
 libc = "0.2"

@@ -55,8 +55,11 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
 }
 
 fn main() {
-    if env::var("CARGO_FEATURE_BUILD_NATIVE_SHADERC").is_err() {
+    if env::var("CARGO_FEATURE_CHECK_PASSTHROUGH").is_ok()
+        && env::var("CARGO_FEATURE_DONT_USE_DEPRECATED").is_err()
+    {
         let out_dir = env::var("OUT_DIR").unwrap();
+        println!("cargo:warning=USE OF --no-defaults IS DEPRECATED BEHAVIOR.");
         println!("cargo:warning=Requested to skip building native C++ shaderc.");
         println!(
             "cargo:warning=Searching {} for shaderc_combined static lib...",
