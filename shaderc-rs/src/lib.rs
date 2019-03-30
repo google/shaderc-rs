@@ -697,11 +697,9 @@ impl<'a> CompileOptions<'a> {
         let f = Box::new(f);
         let f_ptr = &*f as *const F;
         self.f = Some(
-            f
-                as Box<
-                    Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String>
-                        + 'a,
-                >,
+            f as Box<
+                Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
+            >,
         );
         unsafe {
             scs::shaderc_compile_options_set_include_callbacks(
@@ -1219,9 +1217,9 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_compile_vertex_shader_into_spirv() {
         let mut c = Compiler::new().unwrap();
-        let result =
-            c.compile_into_spirv(VOID_MAIN, ShaderKind::Vertex, "shader.glsl", "main", None)
-                .unwrap();
+        let result = c
+            .compile_into_spirv(VOID_MAIN, ShaderKind::Vertex, "shader.glsl", "main", None)
+            .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1231,13 +1229,9 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_compile_vertex_shader_into_spirv_assembly() {
         let mut c = Compiler::new().unwrap();
-        let result = c.compile_into_spirv_assembly(
-            VOID_MAIN,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            None,
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(VOID_MAIN, ShaderKind::Vertex, "shader.glsl", "main", None)
+            .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1246,7 +1240,8 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
-        let result = c.preprocess(VOID_E, "shader.glsl", "main", Some(&options))
+        let result = c
+            .preprocess(VOID_E, "shader.glsl", "main", Some(&options))
             .unwrap();
         assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
     }
@@ -1266,13 +1261,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some("main"));
-        let result = c.compile_into_spirv_assembly(
-            VOID_E,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                VOID_E,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1281,13 +1278,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", Some(""));
-        let result = c.compile_into_spirv_assembly(
-            EXTRA_E,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                EXTRA_E,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1296,13 +1295,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
-        let result = c.compile_into_spirv_assembly(
-            IFDEF_E,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                IFDEF_E,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1312,13 +1313,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
         let o = options.clone().unwrap();
-        let result = c.compile_into_spirv_assembly(
-            IFDEF_E,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&o),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                IFDEF_E,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&o),
+            )
+            .unwrap();
         assert_eq!(VOID_MAIN_ASSEMBLY, result.as_text());
     }
 
@@ -1327,13 +1330,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_source_language(SourceLanguage::HLSL);
-        let result = c.compile_into_spirv(
-            HLSL_VERTEX,
-            ShaderKind::Vertex,
-            "shader.hlsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv(
+                HLSL_VERTEX,
+                ShaderKind::Vertex,
+                "shader.hlsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1345,13 +1350,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_generate_debug_info();
-        let result = c.compile_into_spirv_assembly(
-            DEBUG_INFO,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                DEBUG_INFO,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert!(result.as_text().contains("debug_info_sample"));
     }
 
@@ -1360,13 +1367,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_optimization_level(OptimizationLevel::Zero);
-        let result = c.compile_into_spirv_assembly(
-            DEBUG_INFO,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                DEBUG_INFO,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert!(result.as_text().contains("OpName"));
         assert!(result.as_text().contains("OpSource"));
     }
@@ -1376,13 +1385,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_optimization_level(OptimizationLevel::Size);
-        let result = c.compile_into_spirv_assembly(
-            TWO_FN,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                TWO_FN,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert!(!result.as_text().contains("OpFunctionCall"));
     }
 
@@ -1391,13 +1402,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_optimization_level(OptimizationLevel::Performance);
-        let result = c.compile_into_spirv_assembly(
-            TWO_FN,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv_assembly(
+                TWO_FN,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert!(!result.as_text().contains("OpFunctionCall"));
     }
 
@@ -1406,13 +1419,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_forced_version_profile(450, GlslProfile::Core);
-        let result = c.compile_into_spirv(
-            CORE_PROFILE,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv(
+                CORE_PROFILE,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert!(result.len() > 20);
         assert!(result.as_binary().first() == Some(&0x07230203));
         let function_end_word: u32 = (1 << 16) | 56;
@@ -1491,7 +1506,8 @@ void main() { my_ssbo.x = 1.0; }";
                     #define FOO_H
                     void main() {}
                     #endif
-                    "#.to_string(),
+                    "#
+                    .to_string(),
                 })
             } else {
                 Err(format!("Couldn't find header \"{}\"", name))
@@ -1516,13 +1532,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_suppress_warnings();
-        let result = c.compile_into_spirv(
-            ONE_WARNING,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap();
+        let result = c
+            .compile_into_spirv(
+                ONE_WARNING,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
         assert_eq!(0, result.get_num_warnings());
     }
 
@@ -1582,57 +1600,68 @@ void main() { my_ssbo.x = 1.0; }";
 
     /// Returns a fragment shader accessing a texture with the given offset.
     macro_rules! texture_offset {
-        ($offset:expr) => ({
+        ($offset:expr) => {{
             let mut s = "#version 450
                          layout (binding=0) uniform sampler1D tex;
                          void main() {
-                            vec4 x = textureOffset(tex, 1., ".to_string();
+                            vec4 x = textureOffset(tex, 1., "
+                .to_string();
             s.push_str(stringify!($offset));
             s.push_str(");\n}");
             s
-        })
+        }};
     }
 
     #[test]
     fn test_compile_options_set_limit() {
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
-        assert!(c.compile_into_spirv(
-            &texture_offset!(7),
-            ShaderKind::Fragment,
-            "shader.glsl",
-            "main",
-            Some(&options)
-        ).is_ok());
-        assert!(c.compile_into_spirv(
-            &texture_offset!(8),
-            ShaderKind::Fragment,
-            "shader.glsl",
-            "main",
-            Some(&options)
-        ).is_err());
+        assert!(c
+            .compile_into_spirv(
+                &texture_offset!(7),
+                ShaderKind::Fragment,
+                "shader.glsl",
+                "main",
+                Some(&options)
+            )
+            .is_ok());
+        assert!(c
+            .compile_into_spirv(
+                &texture_offset!(8),
+                ShaderKind::Fragment,
+                "shader.glsl",
+                "main",
+                Some(&options)
+            )
+            .is_err());
         options.set_limit(Limit::MaxProgramTexelOffset, 10);
-        assert!(c.compile_into_spirv(
-            &texture_offset!(8),
-            ShaderKind::Fragment,
-            "shader.glsl",
-            "main",
-            Some(&options)
-        ).is_ok());
-        assert!(c.compile_into_spirv(
-            &texture_offset!(10),
-            ShaderKind::Fragment,
-            "shader.glsl",
-            "main",
-            Some(&options)
-        ).is_ok());
-        assert!(c.compile_into_spirv(
-            &texture_offset!(11),
-            ShaderKind::Fragment,
-            "shader.glsl",
-            "main",
-            Some(&options)
-        ).is_err());
+        assert!(c
+            .compile_into_spirv(
+                &texture_offset!(8),
+                ShaderKind::Fragment,
+                "shader.glsl",
+                "main",
+                Some(&options)
+            )
+            .is_ok());
+        assert!(c
+            .compile_into_spirv(
+                &texture_offset!(10),
+                ShaderKind::Fragment,
+                "shader.glsl",
+                "main",
+                Some(&options)
+            )
+            .is_ok());
+        assert!(c
+            .compile_into_spirv(
+                &texture_offset!(11),
+                ShaderKind::Fragment,
+                "shader.glsl",
+                "main",
+                Some(&options)
+            )
+            .is_err());
     }
 
     #[test]
@@ -1658,13 +1687,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_auto_bind_uniforms(true);
-        let result = c.compile_into_spirv_assembly(
-            UNIFORMS_NO_BINDINGS,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap()
+        let result = c
+            .compile_into_spirv_assembly(
+                UNIFORMS_NO_BINDINGS,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap()
             .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 0"));
         assert!(result.contains("OpDecorate %my_sam Binding 1"));
@@ -1678,13 +1709,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_hlsl_offsets(false);
-        let result = c.compile_into_spirv_assembly(
-            GLSL_WEIRD_PACKING,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap()
+        let result = c
+            .compile_into_spirv_assembly(
+                GLSL_WEIRD_PACKING,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap()
             .as_text();
         assert!(result.contains("OpMemberDecorate %B 1 Offset 16"));
     }
@@ -1694,13 +1727,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.set_hlsl_offsets(true);
-        let result = c.compile_into_spirv_assembly(
-            GLSL_WEIRD_PACKING,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap()
+        let result = c
+            .compile_into_spirv_assembly(
+                GLSL_WEIRD_PACKING,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap()
             .as_text();
         assert!(result.contains("OpMemberDecorate %B 1 Offset 4"));
     }
@@ -1711,13 +1746,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.set_auto_bind_uniforms(true);
         options.set_binding_base(ResourceKind::Image, 44);
-        let result = c.compile_into_spirv_assembly(
-            UNIFORMS_NO_BINDINGS,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap()
+        let result = c
+            .compile_into_spirv_assembly(
+                UNIFORMS_NO_BINDINGS,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap()
             .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 0"));
         assert!(result.contains("OpDecorate %my_sam Binding 1"));
@@ -1732,13 +1769,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.set_auto_bind_uniforms(true);
         options.set_binding_base_for_stage(ShaderKind::Vertex, ResourceKind::Texture, 100);
-        let result = c.compile_into_spirv_assembly(
-            UNIFORMS_NO_BINDINGS,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap()
+        let result = c
+            .compile_into_spirv_assembly(
+                UNIFORMS_NO_BINDINGS,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap()
             .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 100"));
         assert!(result.contains("OpDecorate %my_sam Binding 0"));
@@ -1753,13 +1792,15 @@ void main() { my_ssbo.x = 1.0; }";
         let mut options = CompileOptions::new().unwrap();
         options.set_auto_bind_uniforms(true);
         options.set_binding_base_for_stage(ShaderKind::Fragment, ResourceKind::Texture, 100);
-        let result = c.compile_into_spirv_assembly(
-            UNIFORMS_NO_BINDINGS,
-            ShaderKind::Vertex,
-            "shader.glsl",
-            "main",
-            Some(&options),
-        ).unwrap()
+        let result = c
+            .compile_into_spirv_assembly(
+                UNIFORMS_NO_BINDINGS,
+                ShaderKind::Vertex,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap()
             .as_text();
         assert!(result.contains("OpDecorate %my_tex Binding 0"));
         assert!(result.contains("OpDecorate %my_sam Binding 1"));
@@ -1797,9 +1838,9 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_warning() {
         let mut c = Compiler::new().unwrap();
-        let result =
-            c.compile_into_spirv(ONE_WARNING, ShaderKind::Vertex, "shader.glsl", "main", None)
-                .unwrap();
+        let result = c
+            .compile_into_spirv(ONE_WARNING, ShaderKind::Vertex, "shader.glsl", "main", None)
+            .unwrap();
         assert_eq!(1, result.get_num_warnings());
         assert_eq!(ONE_WARNING_MSG.to_string(), result.get_warning_messages());
     }
