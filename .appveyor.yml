@@ -26,9 +26,9 @@ install:
   - if not %target% == %host% rustup target add %target%
   - rustc -vV && cargo -vV
 
-  # Because that MSBUild does not support path longer than MAX_PATH
-  # (https://github.com/Microsoft/msbuild/issues/53),
-  # we use ninja to build.
+  # Ninja is required to build with Visual Studio because MSBuild does not
+  # support pathnames longer than MAX_PATH
+  # (https://github.com/Microsoft/msbuild/issues/53).
   - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip"
   - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
   - 7z x ninja.zip -oC:\projects\deps\ninja > nul

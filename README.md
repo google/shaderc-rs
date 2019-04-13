@@ -82,12 +82,10 @@ Setup
 
 To build the shaderc-rs crate, the following tools must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
+- [Ninja](https://github.com/ninja-build/ninja/releases) (required on windows-msvc, but optional on all other platforms)
 - [Git](https://git-scm.com/)
 - [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on windows the executable must be named `python.exe`)
 - a C++11 compiler
-
-Additionally, the build script can auto detect and use the following if they are on `PATH`:
-- [Ninja](https://github.com/ninja-build/ninja/releases)
 
 These requirements can be either installed with your favourite package manager or with installers
 from the projects' websites. Below are some example ways to get setup.
@@ -96,16 +94,10 @@ from the projects' websites. Below are some example ways to get setup.
 
 1.  `rustup default stable-x86_64-pc-windows-msvc`
 2.  Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017). If you have already been using this toolchain then its probably already installed.
-3.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-4.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-python2`
-5.  Add the msys2 mingw64 binary path to the PATH environment variable.
-
-NOTE: On Windows if building with MSBuild (the default), it may fail because of
-file path too long. That is a [limitation of MSBuild](https://github.com/Microsoft/msbuild/issues/53).
-You can work around either by set the target directory to a shallower one using
-`cargo --target-dir`, or [download Ninja](https://github.com/ninja-build/ninja/releases)
-and make it accessible on `PATH`. The build script will automatically detect
-and use Ninja instead of MSBuild.
+3.  Install [Ninja](https://github.com/ninja-build/ninja/releases) (download ninja-win.zip and extract ninja.exe somewhere suitable).
+4.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
+5.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-python2`
+6.  Edit the PATH environment variable to include the path where you extracted ninja.exe, and the msys2 mingw64 binary path.
 
 ### windows-gnu Example Setup
 
@@ -118,10 +110,11 @@ Steps 1 and 2 are to workaround https://github.com/rust-lang/rust/issues/49078 b
 3.  Run the command: `rustup default stable-x86_64-pc-windows-msvc`
 4.  Run the command: `rustup target install x86_64-pc-windows-gnu`
 5.  Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017). If you have already been using this toolchain then its probably already installed.
-6.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-7.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2`
-8.  Add the msys2 mingw64 binary path to the PATH environment variable.
-9.  Any cargo command that builds the project needs to include `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
+6.  Install [Ninja](https://github.com/ninja-build/ninja/releases) (download ninja-win.zip and extract ninja.exe somewhere suitable).
+7.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
+8.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2`
+9.  Edit the PATH environment variable to include the path where you extracted ninja.exe, and the msys2 mingw64 binary path.
+10. Any cargo command that builds the project needs to include `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
 
 ### Linux Example Setup
 
