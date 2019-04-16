@@ -16,14 +16,7 @@ code that happens to be owned by Google.
 Usage
 -----
 
-This library uses [`build.rs`](build/build.rs) to automatically check out
-and compile a copy of native C++ shaderc and link to the generated artifacts,
-which requires `git`, `cmake`, and `python` existing in the `PATH`.
-
-To turn off this feature, specify `--no-default-features` when building.
-But then you will need to place a copy of the `shaderc_combined` static library
-to the location (printed out in the warning message) that is scanned by the
-linker.
+The included shaderc-sys crate uses [`build.rs`](shaderc-sys/build/build.rs) to discover or build a copy of libshaderc.  See Setup section.
 
 First add to your `Cargo.toml`:
 
@@ -80,7 +73,19 @@ assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 Setup
 -----
 
-To build the shaderc-rs crate, the following tools must be installed and available on `PATH`:
+Building the underlying libshaderc from source takes a while.  You can provide it or use system libraries by setting the `SHADERC_STATIC` path.  On Linux, the build script also checks for independent libglslang and libSPIRV and includes them only if found.
+
+`--no-default-features` still works on shaderc-rs, but shaderc-sys implements this behavior in a deprecated manner.  Prefer `SHADERC_STATIC="../path/to/libshaderc/and/glsang/etc/"`.  This method only works with a monolithic **libshaderc_combined.a**.
+
+If you need to prefer building libshaderc from source to override system libraries etc, explicitly enable the build-from-source feature:
+```
+cargo build --features=build-from-source
+```
+
+The shaderc-sys [`build.rs`](shaderc-sys/build/build.rs) will automatically check out and compile a copy of native C++ shaderc and link to the generated artifacts,
+which requires `git`, `cmake`, and `python` existing in the `PATH`.
+
+To build your own libshaderc for the shaderc-sys crate, the following tools must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
 - [Git](https://git-scm.com/)
 - [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on windows the executable must be named `python.exe`)
@@ -131,6 +136,8 @@ For example on ubuntu:
 ```
 sudo apt-get install build-essential git python cmake
 ```
+
+On Arch linux, the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/) will include glsang and SPIRV libs in a detectable location.
 
 ### macOS Example Setup
 

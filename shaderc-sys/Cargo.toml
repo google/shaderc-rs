@@ -17,6 +17,7 @@ name = "shaderc_sys"
 [features]
 check-passthrough = []
 dont-use-deprecated = []
+build-from-source = []
 
 [dependencies]
 libc = "0.2"
