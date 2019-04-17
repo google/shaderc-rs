@@ -22,3 +22,4 @@ assert_matches = "1.3"
 [features]
 default = ["shaderc-sys-passthrough"] # disabling defaults inverts to use deprecated
 shaderc-sys-passthrough = ["shaderc-sys/dont-use-deprecated"]
+build-from-source = ["shaderc-sys/build-from-source"]
