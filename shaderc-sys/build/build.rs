@@ -37,7 +37,7 @@ fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     config.build()
 }
 
-fn build_shaderc_msvc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
+fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
@@ -52,10 +52,8 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
         .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
         .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
         .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
-        .define("CMAKE_INSTALL_LIBDIR", "lib");
-    if use_ninja {
-        config.generator("Ninja");
-    }
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
+        .generator("Ninja");
     config.build()
 }
 
@@ -166,14 +164,14 @@ fn main() {
     finder.must_have("git");
     finder.must_have("python");
 
-    let has_ninja = finder.maybe_have("ninja").is_some();
-
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let shaderc_dir = Path::new(&manifest_dir).join("build");
 
     let mut lib_path = if target_env == "msvc" {
-        build_shaderc_msvc(&shaderc_dir, has_ninja)
+        finder.must_have("ninja");
+        build_shaderc_msvc(&shaderc_dir)
     } else {
+        let has_ninja = finder.maybe_have("ninja").is_some();
         build_shaderc(&shaderc_dir, has_ninja)
     };
 
