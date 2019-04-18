@@ -29,10 +29,9 @@
 //! scanned by the linker.
 //!
 //! The build script also tries to check whether [Ninja](https://ninja-build.org/)
-//! is available on `PATH`. If true, Ninja is used to compile native C++
-//! shaderc. It is generally faster that way, and it does not suffer from the
-//! `MAX_PATH` limitation that MSBuild, the default for building using MSVC,
-//! has.
+//! is available on `PATH`. Ninja is required to build with Visual Studio because
+//! MSBuild does not support paths longer than MAX_PATH. On other platforms,
+//! Ninja is optional but is generally faster than the default build tool.
 //!
 //! # Examples
 //!
