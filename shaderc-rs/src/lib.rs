@@ -18,21 +18,25 @@
 //! for compiling GLSL/HLSL source code to SPIRV modules. It has been shipping
 //! in the Android NDK since version r12b.
 //!
-//! This library uses [`build.rs`](build/build.rs) to automatically check out
-//! and compile a copy of native C++ shaderc and link to the generated
-//! artifacts, which requires `git`, `cmake`, and `python` existing in the
-//! `PATH`.
+//! The order of preference in which the build script will attempt to obtain
+//! shaderc can be controlled by several options, which are passed through to
+//! shaderc-sys when building shaderc-rs:
 //!
-//! To turn off this feature, specify `--no-default-features` when building.
-//! But then you will need to place a copy of the `shaderc_combined` static
-//! library to the location (printed out in the warning message) that is
-//! scanned by the linker.
+//! - First, `SHADERC_LIB_DIR=/path/to/shaderc/libs/` will, if set, take precedence
+//!   and search for `libshaderc_combined.a` (and the glsang and SPIRV libraries on
+//!   Linux) in the targeted directory
+//! - Second, the option `--features build-from-source` will cause stop automatic
+//!   library detection and default to building from source
+//! - Third, on Linux, `/usr/lib/` will be automatically searched for system
+//!   libraries if no explicit options were set
+//! - Last, shaderc-sys, if no other option was set or succeeded, fall back to
+//!   checking out and compiling a copy shaderc.  This option is very slow
 //!
-//! The build script also tries to check whether [Ninja](https://ninja-build.org/)
-//! is available on `PATH`. If true, Ninja is used to compile native C++
-//! shaderc. It is generally faster that way, and it does not suffer from the
-//! `MAX_PATH` limitation that MSBuild, the default for building using MSVC,
-//! has.
+//! `--no-default-features` still works on shaderc-rs, but shaderc-sys implements
+//! this behavior in a deprecated manner.  This method only works with a monolithic
+//! **libshaderc_combined.a**. Prefer
+//! `SHADERC_LIB_DIR="../path/to/libshaderc/and/glsang/etc/"` and refer to pre-0.5
+//! documentation for more information.
 //!
 //! # Examples
 //!
@@ -59,15 +63,15 @@
 //! assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 //! ```
 
-extern crate libc;
-
 #[cfg(test)]
 #[macro_use]
 extern crate assert_matches;
+extern crate libc;
 extern crate shaderc_sys;
 
-use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t, uint8_t};
 use shaderc_sys as scs;
+
+use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t, uint8_t};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};

@@ -73,14 +73,28 @@ assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 Setup
 -----
 
-Building the underlying libshaderc from source takes a while.  You can provide it or use system libraries by setting the `SHADERC_STATIC` path.  On Linux, the build script also checks for independent libglslang and libSPIRV and includes them only if found.
+The order of preference in which the build script will attempt to obtain
+shaderc can be controlled by several options, which are passed through to
+shaderc-sys when building shaderc-rs:
 
-`--no-default-features` still works on shaderc-rs, but shaderc-sys implements this behavior in a deprecated manner.  Prefer `SHADERC_STATIC="../path/to/libshaderc/and/glsang/etc/"`.  This method only works with a monolithic **libshaderc_combined.a**.
+- First, `SHADERC_LIB_DIR=/path/to/shaderc/libs/` will, if set, take precedence
+  and search for `libshaderc_combined.a` (and the glsang and SPIRV libraries on
+  Linux) in the targeted directory
+- Second, the option `--features build-from-source` will cause stop automatic
+  library detection and default to building from source
+- Third, on Linux, `/usr/lib/` will be automatically searched for system
+  libraries if no explicit options were set
+- Last, shaderc-sys, if no other option was set or succeeded, fall back to
+  checking out and compiling a copy shaderc.  This option is very slow
 
-If you need to prefer building libshaderc from source to override system libraries etc, explicitly enable the build-from-source feature:
-```
-cargo build --features=build-from-source
-```
+`--no-default-features` still works on shaderc-rs, but shaderc-sys implements
+this behavior in a deprecated manner.  This method only works with a monolithic
+**libshaderc_combined.a**. Prefer 
+`SHADERC_LIB_DIR="../path/to/libshaderc/and/glsang/etc/"` and refer to pre-0.5
+documentation for more information.
+
+Building from Source
+--------------------
 
 The shaderc-sys [`build.rs`](shaderc-sys/build/build.rs) will automatically check out and compile a copy of native C++ shaderc and link to the generated artifacts,
 which requires `git`, `cmake`, and `python` existing in the `PATH`.

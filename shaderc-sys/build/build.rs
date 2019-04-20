@@ -58,46 +58,50 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
 }
 
 fn main() {
-    // Deprecated --no-defaults path inhereted from before shaderc-rs & shaderc-sys split
-    if env::var("CARGO_FEATURE_CHECK_PASSTHROUGH").is_ok()
-        && env::var("CARGO_FEATURE_DONT_USE_DEPRECATED").is_err()
+    let config_build_from_source = env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_ok();
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
+    let explicit_lib_dir_set = env::var("SHADERC_LIB_DIR").is_ok();
+
+    // Deprecated --no-defaults behavior from before shaderc-rs & shaderc-sys split
+    // This block is only relevant to shaderc-rs but will skip all subsequent
+    // build options
+    if env::var("CARGO_FEATURE_CHECK_INVERTED_NO_DEFAULTS").is_ok()
+        && env::var("CARGO_FEATURE_INVERTED_NO_DEFAULTS").is_err()
     {
         let out_dir = env::var("OUT_DIR").unwrap();
-        println!("cargo:warning=USE OF --no-defaults IS DEPRECATED BEHAVIOR.");
-        println!("cargo:warning=Requested to skip building native C++ shaderc.");
+        println!("cargo:warning=USE OF --no-default-features IS DEPRECATED BEHAVIOR.");
+        println!(
+            "cargo:warning=Requested to use cargo out directory to find libshaderc_combined.a"
+        );
         println!(
             "cargo:warning=Searching {} for shaderc_combined static lib...",
             out_dir
         );
         println!("cargo:rustc-link-search=native={}", out_dir);
         println!("cargo:rustc-link-lib=static=shaderc_combined");
-        emit_stdc_link();
+        emit_std_cpp_link();
         return;
     }
 
-    // Explicit overrides first
+    // Initialize explicit libshaderc search directory first
     let mut search_dir = if let Ok(lib_dir) = env::var("SHADERC_LIB_DIR") {
-        println!("cargo:warning=Using specified pre-built libshaderc");
+        println!(
+            "cargo:warning=Specified {} to search for libshaderc.",
+            lib_dir
+        );
         Some(lib_dir)
-    } else if let Ok(lib_path) = env::var("SHADERC_LIB_PATH") {
-        println!("cargo:warning=Using specified pre-built libshaderc");
-        Some(lib_path)
-    } else if let Ok(lib_path) = env::var("SHADERC_STATIC") {
-        println!("cargo:warning=Using specified pre-built libshaderc");
-        Some(lib_path)
     } else {
         None
     };
 
-    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
-    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
-
-    // Guess linux path for system library unless requested to do source build
-    if search_dir.is_none()
-        && target_os == "linux"
-        && env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_err()
-    {
-        println!("cargo:warning=Checking for system installed libraries");
+    // If no explicit path is set and no explicit request is made to build from
+    // source, check known locations before falling back to from-source-build
+    if search_dir.is_none() && target_os == "linux" && !config_build_from_source {
+        println!(
+            "cargo:warning=Checking for system installed libraries.  \
+             Use --features = build-from-source to disable this behavior"
+        );
         search_dir = Some("/usr/lib/".to_owned());
     }
 
@@ -110,9 +114,9 @@ fn main() {
 
         if let Some((lib_dir, lib_name)) = {
             if combined_lib_path.exists() {
-                Some((search_dir.clone(), COMBINED_LIB.to_owned()))
+                Some((&search_dir, COMBINED_LIB.to_owned()))
             } else if dylib_path.exists() {
-                Some((search_dir.clone(), dylib_name))
+                Some((&search_dir, dylib_name))
             } else {
                 None
             }
@@ -122,20 +126,30 @@ fn main() {
                     println!("cargo:rustc-link-search=native={}", lib_dir);
                     let spirv_path = search_path.join(SPIRV_LIB);
                     if spirv_path.exists() {
-                        println!("cargo:warning=Found SPIRV.  Linking SPIRV & glslang");
+                        println!(
+                            "cargo:warning=Found SPIRV.  Linking libSPIRV & \
+                             libglslang"
+                        );
                         println!("cargo:rustc-link-lib=static=SPIRV");
                         println!("cargo:rustc-link-lib=static=SPIRV-Tools-opt");
                         println!("cargo:rustc-link-lib=static=SPIRV-Tools");
                         println!("cargo:rustc-link-lib=glslang");
                     } else {
-                        println!("cargo:warning=Only libshaderc library found.  Assuming SPIRV & glslang included.");
+                        println!(
+                            "cargo:warning=Only libshaderc library found.  \
+                             Assuming libSPIRV & libglslang built into provided \
+                             libshaderc."
+                        );
                     }
                     println!("cargo:rustc-link-lib=static={}", lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("windows", "gnu") => {
-                    println!("cargo:warning=Windows MinGW static builds experimental");
+                    println!(
+                        "cargo:warning=Windows MinGW static builds \
+                         experimental"
+                    );
                     println!("cargo:rustc-link-search=native={}", lib_dir);
                     println!("cargo:rustc-link-lib=static={}", lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
@@ -149,15 +163,24 @@ fn main() {
                     return;
                 }
                 (_, _) => {
-                    println!("cargo:warning=Platform unsupported for pre-built libshaderc");
+                    println!(
+                        "cargo:warning=Platform unsupported for pre-built \
+                         libshaderc"
+                    );
                 }
             }
-        } else {
-            println!("cargo:warning=pre-built library not found");
         }
     }
 
-    println!("cargo:warning=Falling back to from-source build");
+    if config_build_from_source {
+        println!("cargo:warning=Requested to build from source");
+    } else {
+        println!(
+            "cargo:warning=Pre-built library not found.  Falling back \
+             to from-source build"
+        );
+    }
+
     let mut finder = cmd_finder::CommandFinder::new();
 
     finder.must_have("cmake");
@@ -179,10 +202,10 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib=static=shaderc_combined");
 
-    emit_stdc_link();
+    emit_std_cpp_link();
 }
 
-fn emit_stdc_link() {
+fn emit_std_cpp_link() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
 
