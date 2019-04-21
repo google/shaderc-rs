@@ -5,7 +5,7 @@ authors = ["Lei Zhang <antiagainst@gmail.com>"]
 description = "Rust bindings for shaderc"
 documentation = "https://docs.rs/shaderc"
 repository = "https://github.com/google/shaderc-rs"
-readme = "README.md"
+readme = "../README.md"
 license = "Apache-2.0"
 keywords = ["shader", "compiler", "spirv", "glsl", "hlsl"]
 
