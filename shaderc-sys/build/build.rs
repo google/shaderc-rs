@@ -16,6 +16,7 @@ mod cmd_finder;
 
 use std::env;
 use std::env::consts;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 static COMBINED_LIB: &str = "shaderc_combined";
@@ -106,17 +107,47 @@ fn main() {
     }
 
     // Try to build with the static lib if a path was received or chosen
+    let search_dir = if let Some(search_dir) = search_dir {
+        let path = Path::new(&search_dir);
+        let cannonical = fs::canonicalize(&path);
+        if path.is_relative() {
+            println!(
+                "cargo:warning=Provided path {:?} is relative.  Path must be \
+                 relative to shaderc-sys crate, possibly not your current \
+                 working directory",
+                &path
+            );
+        } else if path.is_dir() == false {
+            println!(
+                "cargo:warning=Provided path {:?} is not a directory.",
+                &path
+            );
+        }
+        if (cannonical.is_err()) && explicit_lib_dir_set {
+            println!("cargo:warning={:?}", cannonical.err().unwrap());
+            println!(
+                "cargo:warning=Provided path {:?} could not be canonicallized",
+                &path
+            );
+            None
+        } else {
+            cannonical.ok()
+        }
+    } else {
+        None
+    };
+
     if let Some(search_dir) = search_dir {
-        let search_path = Path::new(&search_dir);
-        let combined_lib_path = search_path.join(COMBINED_LIB_FILE);
+        let search_dir_str = search_dir.to_string_lossy();
+        let combined_lib_path = search_dir.join(COMBINED_LIB_FILE);
         let dylib_name = format!("{}shaderc{}", consts::DLL_PREFIX, consts::DLL_SUFFIX);
-        let dylib_path = search_path.join(dylib_name.clone());
+        let dylib_path = search_dir.join(dylib_name.clone());
 
         if let Some((lib_dir, lib_name)) = {
             if combined_lib_path.exists() {
-                Some((&search_dir, COMBINED_LIB.to_owned()))
+                Some((&search_dir_str, COMBINED_LIB.to_owned()))
             } else if dylib_path.exists() {
-                Some((&search_dir, dylib_name))
+                Some((&search_dir_str, dylib_name))
             } else {
                 None
             }
@@ -124,7 +155,7 @@ fn main() {
             match (target_os.as_str(), target_env.as_str()) {
                 ("linux", _) => {
                     println!("cargo:rustc-link-search=native={}", lib_dir);
-                    let spirv_path = search_path.join(SPIRV_LIB);
+                    let spirv_path = search_dir.join(SPIRV_LIB);
                     if spirv_path.exists() {
                         println!(
                             "cargo:warning=Found SPIRV.  Linking libSPIRV & \
