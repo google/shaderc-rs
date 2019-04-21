@@ -12,31 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Rust binding for the shaderc library.
+//! Rust binding for the Shaderc library.
 //!
-//! The [shaderc](https://github.com/google/shaderc) library provides an API
+//! This crate contains the higher-level Rust-friendly interface for the
+//! Shaderc library. For the lower-level C interface, please see the
+//! [shaderc-sys](https://docs.rs/shaderc-sys) crate.
+//!
+//! The [Shaderc](https://github.com/google/shaderc) library provides an API
 //! for compiling GLSL/HLSL source code to SPIRV modules. It has been shipping
 //! in the Android NDK since version r12b.
 //!
 //! The order of preference in which the build script will attempt to obtain
-//! shaderc can be controlled by several options, which are passed through to
+//! Shaderc can be controlled by several options, which are passed through to
 //! shaderc-sys when building shaderc-rs:
 //!
-//! - First, `SHADERC_LIB_DIR=/path/to/shaderc/libs/` will, if set, take precedence
-//!   and search for `libshaderc_combined.a` (and the glsang and SPIRV libraries on
-//!   Linux) in the targeted directory
-//! - Second, the option `--features build-from-source` will cause stop automatic
-//!   library detection and default to building from source
-//! - Third, on Linux, `/usr/lib/` will be automatically searched for system
-//!   libraries if no explicit options were set
-//! - Last, shaderc-sys, if no other option was set or succeeded, fall back to
-//!   checking out and compiling a copy shaderc.  This option is very slow
+//! 1. The option `--features build-from-source` will prevent automatic library
+//!    detection and force building from source.
+//! 2. If the `SHADERC_LIB_DIR` environment variable is set to
+//!    `/path/to/shaderc/libs/`, it will take precedence and
+//!    `libshaderc_combined.a` (and the glsang and SPIRV libraries on Linux)
+//!    will be searched in the `/path/to/shaderc/libs/` directory.
+//! 3. On Linux, `/usr/lib/` will be automatically searched for system libraries
+//!    if none of the above were given.
+//! 4. If no other option was set or succeeded, shaderc-sys will fall back to
+//!    checking out and compiling a copy of Shaderc.  This procedure is quite
+//!    slow.
 //!
-//! `--no-default-features` still works on shaderc-rs, but shaderc-sys implements
-//! this behavior in a deprecated manner.  This method only works with a monolithic
-//! **libshaderc_combined.a**. Prefer
-//! `SHADERC_LIB_DIR="../path/to/libshaderc/and/glsang/etc/"` and refer to pre-0.5
-//! documentation for more information.
+//! NOTE: `--no-default-features` still works on shaderc-rs, but shaderc-sys
+//! implements this behavior in a deprecated manner, and it will be removed in
+//! the next release.  This method only works with a monolithic
+//! `libshaderc_combined.a`.  Refer to pre-0.5 documentation for more
+//! information.  Prefer `SHADERC_LIB_DIR="/path/to/shaderc/libs/"`.
 //!
 //! # Examples
 //!

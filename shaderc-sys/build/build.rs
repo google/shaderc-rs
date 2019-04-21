@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 
 static COMBINED_LIB: &str = "shaderc_combined";
 static COMBINED_LIB_FILE: &str = "libshaderc_combined.a";
-static SPIRV_LIB: &str = "libSPIRV.a";
+static SPIRV_LIB_FILE: &str = "libSPIRV.a";
 
 fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
@@ -145,9 +145,9 @@ fn main() {
 
         if let Some((lib_dir, lib_name)) = {
             if combined_lib_path.exists() {
-                Some((&search_dir_str, COMBINED_LIB.to_owned()))
+                Some((&search_dir_str, COMBINED_LIB))
             } else if dylib_path.exists() {
-                Some((&search_dir_str, dylib_name))
+                Some((&search_dir_str, dylib_name.as_str()))
             } else {
                 None
             }
@@ -155,7 +155,7 @@ fn main() {
             match (target_os.as_str(), target_env.as_str()) {
                 ("linux", _) => {
                     println!("cargo:rustc-link-search=native={}", lib_dir);
-                    let spirv_path = search_dir.join(SPIRV_LIB);
+                    let spirv_path = search_dir.join(SPIRV_LIB_FILE);
                     if spirv_path.exists() {
                         println!(
                             "cargo:warning=Found SPIRV.  Linking libSPIRV & \

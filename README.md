@@ -16,13 +16,14 @@ code that happens to be owned by Google.
 Usage
 -----
 
-The included shaderc-sys crate uses [`build.rs`](shaderc-sys/build/build.rs) to discover or build a copy of libshaderc.  See Setup section.
+The included shaderc-sys crate uses [`build.rs`](shaderc-sys/build/build.rs) to
+discover or build a copy of shaderc libraries.  See Setup section.
 
 First add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-shaderc = "0.3"
+shaderc = "0.5"
 ```
 
 Then add to your crate root:
@@ -77,21 +78,22 @@ The order of preference in which the build script will attempt to obtain
 shaderc can be controlled by several options, which are passed through to
 shaderc-sys when building shaderc-rs:
 
-- First, `SHADERC_LIB_DIR=/path/to/shaderc/libs/` will, if set, take precedence
-  and search for `libshaderc_combined.a` (and the glsang and SPIRV libraries on
-  Linux) in the targeted directory
-- Second, the option `--features build-from-source` will cause stop automatic
-  library detection and default to building from source
-- Third, on Linux, `/usr/lib/` will be automatically searched for system
-  libraries if no explicit options were set
-- Last, shaderc-sys, if no other option was set or succeeded, fall back to
-  checking out and compiling a copy shaderc.  This option is very slow
+1. The option `--features build-from-source` will prevent automatic library
+   detection and force building from source.
+2. If the `SHADERC_LIB_DIR` environment variable is set to
+   `/path/to/shaderc/libs/`, it will take precedence and `libshaderc_combined.a`
+   (and the glsang and SPIRV libraries on Linux) will be searched in the
+   `/path/to/shaderc/libs/` directory.
+3. On Linux, `/usr/lib/` will be automatically searched for system libraries
+   if none of the above were given.
+4. If no other option was set or succeeded, shaderc-sys will fall back to
+   checking out and compiling a copy of shaderc.  This procedure is quite slow.
 
-`--no-default-features` still works on shaderc-rs, but shaderc-sys implements
-this behavior in a deprecated manner.  This method only works with a monolithic
-**libshaderc_combined.a**. Prefer 
-`SHADERC_LIB_DIR="../path/to/libshaderc/and/glsang/etc/"` and refer to pre-0.5
-documentation for more information.
+NOTE: `--no-default-features` still works on shaderc-rs, but shaderc-sys
+implements this behavior in a deprecated manner, and it will be removed in the
+next release.  This method only works with a monolithic `libshaderc_combined.a`.
+Refer to pre-0.5 documentation for more information.
+Prefer `SHADERC_LIB_DIR="/path/to/shaderc/libs/"`.
 
 Building from Source
 --------------------
@@ -173,7 +175,7 @@ This project is initialized and mainly developed by Lei Zhang
 ([@antiagainst][me]).
 
 [shaderc]: https://github.com/google/shaderc
-[doc-compiler]: https://docs.rs/shaderc/0.3/shaderc/struct.Compiler.html
-[doc-options]: https://docs.rs/shaderc/0.3/shaderc/struct.CompileOptions.html
-[doc-artifact]: https://docs.rs/shaderc/0.3/shaderc/struct.CompilationArtifact.html
+[doc-compiler]: https://docs.rs/shaderc/0.5/shaderc/struct.Compiler.html
+[doc-options]: https://docs.rs/shaderc/0.5/shaderc/struct.CompileOptions.html
+[doc-artifact]: https://docs.rs/shaderc/0.5/shaderc/struct.CompilationArtifact.html
 [me]: https://github.com/antiagainst
