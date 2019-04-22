@@ -26,4 +26,4 @@ inverted-no-defaults = []
 libc = "0.2"
 
 [build-dependencies]
-cmake = "0.1"
+cmake = "^0.1.37"
