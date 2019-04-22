@@ -16,20 +16,14 @@ code that happens to be owned by Google.
 Usage
 -----
 
-This library uses [`build.rs`](build/build.rs) to automatically check out
-and compile a copy of native C++ shaderc and link to the generated artifacts,
-which requires `git`, `cmake`, and `python` existing in the `PATH`.
-
-To turn off this feature, specify `--no-default-features` when building.
-But then you will need to place a copy of the `shaderc_combined` static library
-to the location (printed out in the warning message) that is scanned by the
-linker.
+The included shaderc-sys crate uses [`build.rs`](shaderc-sys/build/build.rs) to
+discover or build a copy of shaderc libraries.  See Setup section.
 
 First add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-shaderc = "0.3"
+shaderc = "0.5"
 ```
 
 Then add to your crate root:
@@ -80,7 +74,34 @@ assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 Setup
 -----
 
-To build the shaderc-rs crate, the following tools must be installed and available on `PATH`:
+The order of preference in which the build script will attempt to obtain
+shaderc can be controlled by several options, which are passed through to
+shaderc-sys when building shaderc-rs:
+
+1. The option `--features build-from-source` will prevent automatic library
+   detection and force building from source.
+2. If the `SHADERC_LIB_DIR` environment variable is set to
+   `/path/to/shaderc/libs/`, it will take precedence and `libshaderc_combined.a`
+   (and the glsang and SPIRV libraries on Linux) will be searched in the
+   `/path/to/shaderc/libs/` directory.
+3. On Linux, `/usr/lib/` will be automatically searched for system libraries
+   if none of the above were given.
+4. If no other option was set or succeeded, shaderc-sys will fall back to
+   checking out and compiling a copy of shaderc.  This procedure is quite slow.
+
+NOTE: `--no-default-features` still works on shaderc-rs, but shaderc-sys
+implements this behavior in a deprecated manner, and it will be removed in the
+next release.  This method only works with a monolithic `libshaderc_combined.a`.
+Refer to pre-0.5 documentation for more information.
+Prefer `SHADERC_LIB_DIR="/path/to/shaderc/libs/"`.
+
+Building from Source
+--------------------
+
+The shaderc-sys [`build.rs`](shaderc-sys/build/build.rs) will automatically check out and compile a copy of native C++ shaderc and link to the generated artifacts,
+which requires `git`, `cmake`, and `python` existing in the `PATH`.
+
+To build your own libshaderc for the shaderc-sys crate, the following tools must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
 - [Git](https://git-scm.com/)
 - [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on windows the executable must be named `python.exe`)
@@ -132,6 +153,8 @@ For example on ubuntu:
 sudo apt-get install build-essential git python cmake
 ```
 
+On Arch linux, the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/) will include glsang and SPIRV libs in a detectable location.
+
 ### macOS Example Setup
 
 Assuming Homebrew:
@@ -152,7 +175,7 @@ This project is initialized and mainly developed by Lei Zhang
 ([@antiagainst][me]).
 
 [shaderc]: https://github.com/google/shaderc
-[doc-compiler]: https://docs.rs/shaderc/0.3/shaderc/struct.Compiler.html
-[doc-options]: https://docs.rs/shaderc/0.3/shaderc/struct.CompileOptions.html
-[doc-artifact]: https://docs.rs/shaderc/0.3/shaderc/struct.CompilationArtifact.html
+[doc-compiler]: https://docs.rs/shaderc/0.5/shaderc/struct.Compiler.html
+[doc-options]: https://docs.rs/shaderc/0.5/shaderc/struct.CompileOptions.html
+[doc-artifact]: https://docs.rs/shaderc/0.5/shaderc/struct.CompilationArtifact.html
 [me]: https://github.com/antiagainst

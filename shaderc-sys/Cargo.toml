@@ -1,0 +1,29 @@
+[package]
+name = "shaderc-sys"
+version = "0.5.0"
+authors = ["Lei Zhang <antiagainst@gmail.com>", "Mr. Knapp <knappador@gmail.com>"]
+build = "build/build.rs"
+description = "Shaderc system library FFI, building, and linking"
+repository = "https://github.com/google/shaderc-rs"
+documentation = "https://docs.rs/shaderc"
+readme = "../README.md"
+license = "Apache-2.0"
+keywords = ["shader", "compiler", "spirv", "glsl", "hlsl"]
+links = "shaderc"
+
+[lib]
+name = "shaderc_sys"
+
+[features]
+build-from-source = []
+
+# NOTE: The following features are specifically for supporting a deprecated
+# feature in shaderc-rs. They will be removed in the next release.
+check-inverted-no-defaults = []
+inverted-no-defaults = []
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cmake = "0.1"

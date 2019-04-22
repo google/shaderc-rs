@@ -1,12 +1,12 @@
 [submodule "build/spirv-headers"]
-	path = build/spirv-headers
+	path = shaderc-sys/build/spirv-headers
 	url = https://github.com/KhronosGroup/SPIRV-Headers.git
 [submodule "build/spirv-tools"]
-	path = build/spirv-tools
+	path = shaderc-sys/build/spirv-tools
 	url = https://github.com/KhronosGroup/SPIRV-Tools.git
 [submodule "build/glslang"]
-	path = build/glslang
+	path = shaderc-sys/build/glslang
 	url = https://github.com/KhronosGroup/glslang.git
 [submodule "build/shaderc"]
-	path = build/shaderc
+	path = shaderc-sys/build/shaderc
 	url = https://github.com/google/shaderc.git
