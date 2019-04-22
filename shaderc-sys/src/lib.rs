@@ -11,9 +11,45 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+//! Shaderc system library FFI, building, and linking
+//!
+//! This crate contains the lower-level C interface for the Shaderc library.
+//! For the higher-level Rust-friendly interface, please see the
+//! [shaderc](https://docs.rs/shaderc) crate.
+//!
+//! The [Shaderc](https://github.com/google/shaderc) library provides an API
+//! for compiling GLSL/HLSL source code to SPIRV modules. It has been shipping
+//! in the Android NDK since version r12b.
+//!
+//! This crate contains Rust FFI inteface to the Shaderc library. It also
+//! handles system library detection and building from source if no system
+//! library installed via `build.rs`.
+//!
+//! The order of preference in which the build script will attempt to obtain
+//! Shaderc can be controlled by several options:
+//!
+//! 1. The option `--features build-from-source` will prevent automatic library
+//!    detection and force building from source.
+//! 2. If the `SHADERC_LIB_DIR` environment variable is set to
+//!    `/path/to/shaderc/libs/`, it will take precedence and
+//!    `libshaderc_combined.a` (and the glsang and SPIRV libraries on Linux)
+//!    will be searched in the `/path/to/shaderc/libs/` directory.
+//! 3. On Linux, `/usr/lib/` will be automatically searched for system libraries
+//!    if none of the above were given.
+//! 4. If no other option was set or succeeded, shaderc-sys will fall back to
+//!    checking out and compiling a copy of Shaderc.  This procedure is quite
+//!    slow.
+//!
+//! The build script also tries to check whether [Ninja](https://ninja-build.org/)
+//! is available on `PATH`. Ninja is required to build with Visual Studio because
+//! MSBuild does not support paths longer than MAX_PATH. On other platforms,
+//! Ninja is optional but is generally faster than the default build tool.
+
 #![allow(non_camel_case_types)]
 
-use libc::{c_char, c_int, c_void, size_t, int32_t, uint32_t};
+extern crate libc;
+use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t};
 
 pub enum ShadercCompiler {}
 pub enum ShadercCompileOptions {}

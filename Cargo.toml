@@ -1,29 +1,5 @@
-[package]
-name = "shaderc"
-version = "0.3.16"
-authors = ["Lei Zhang <antiagainst@gmail.com>"]
-
-build = "build/build.rs"
-
-description = "Rust bindings for shaderc"
-documentation = "https://docs.rs/shaderc"
-repository = "https://github.com/google/shaderc-rs"
-readme = "README.md"
-license = "Apache-2.0"
-keywords = ["shader", "compiler", "spirv", "glsl", "hlsl"]
-
-[lib]
-path = "src/lib.rs"
-
-[features]
-default = ["build-native-shaderc"]
-build-native-shaderc = []  # Clone and build the native C++ shaderc project
-
-[dependencies]
-libc = "0.2"
-
-[dev-dependencies]
-assert_matches = "1.3"
-
-[build-dependencies]
-cmake = "0.1"
+[workspace]
+members = [
+    "shaderc-rs",
+    "shaderc-sys"
+]
