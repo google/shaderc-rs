@@ -40,6 +40,11 @@
 //! 4. If no other option was set or succeeded, shaderc-sys will fall back to
 //!    checking out and compiling a copy of Shaderc.  This procedure is quite
 //!    slow.
+//!
+//! The build script also tries to check whether [Ninja](https://ninja-build.org/)
+//! is available on `PATH`. Ninja is required to build with Visual Studio because
+//! MSBuild does not support paths longer than MAX_PATH. On other platforms,
+//! Ninja is optional but is generally faster than the default build tool.
 
 #![allow(non_camel_case_types)]
 
