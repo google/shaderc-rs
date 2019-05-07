@@ -115,10 +115,9 @@ from the projects' websites. Below are some example ways to get setup.
 
 1.  `rustup default stable-x86_64-pc-windows-msvc`
 2.  Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017). If you have already been using this toolchain then its probably already installed.
-3.  Install [Ninja](https://github.com/ninja-build/ninja/releases) (download ninja-win.zip and extract ninja.exe somewhere suitable).
 4.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-5.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-python2`
-6.  Edit the PATH environment variable to include the path where you extracted ninja.exe, and the msys2 mingw64 binary path.
+5.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-python2 mingw-w64-x86_64-ninja`
+6.  Add the msys2 mingw64 binary path to the PATH environment variable.
 
 ### windows-gnu Example Setup
 
@@ -131,10 +130,9 @@ Steps 1 and 2 are to workaround https://github.com/rust-lang/rust/issues/49078 b
 3.  Run the command: `rustup default stable-x86_64-pc-windows-msvc`
 4.  Run the command: `rustup target install x86_64-pc-windows-gnu`
 5.  Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017). If you have already been using this toolchain then its probably already installed.
-6.  Install [Ninja](https://github.com/ninja-build/ninja/releases) (download ninja-win.zip and extract ninja.exe somewhere suitable).
 7.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-8.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2`
-9.  Edit the PATH environment variable to include the path where you extracted ninja.exe, and the msys2 mingw64 binary path.
+8.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2 mingw-w64-x86_64-ninja`
+9.  Add the msys2 mingw64 binary path to the PATH environment variable.
 10. Any cargo command that builds the project needs to include `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
 
 ### Linux Example Setup
