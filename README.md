@@ -98,42 +98,55 @@ Prefer `SHADERC_LIB_DIR="/path/to/shaderc/libs/"`.
 Building from Source
 --------------------
 
-The shaderc-sys [`build.rs`](shaderc-sys/build/build.rs) will automatically check out and compile a copy of native C++ shaderc and link to the generated artifacts,
-which requires `git`, `cmake`, and `python` existing in the `PATH`.
+The shaderc-sys [`build.rs`](shaderc-sys/build/build.rs) will automatically
+check out and compile a copy of native C++ shaderc and link to the generated
+artifacts, which requires `git`, `cmake`, and `python` existing in the `PATH`.
 
-To build your own libshaderc for the shaderc-sys crate, the following tools must be installed and available on `PATH`:
+To build your own libshaderc for the shaderc-sys crate, the following tools
+must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
-- [Ninja](https://github.com/ninja-build/ninja/releases) (required on windows-msvc, but optional on all other platforms)
 - [Git](https://git-scm.com/)
-- [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on windows the executable must be named `python.exe`)
+- [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on
+  windows the executable must be named `python.exe`)
 - a C++11 compiler
 
-These requirements can be either installed with your favourite package manager or with installers
-from the projects' websites. Below are some example ways to get setup.
+Additionally:
+- [Ninja](https://github.com/ninja-build/ninja/releases) is required on
+  windows-msvc, but optional on all other platforms.
+
+These requirements can be either installed with your favourite package manager
+or with installers from the projects' websites. Below are some example ways
+to get setup.
 
 ### windows-msvc Example Setup
 
-1.  `rustup default stable-x86_64-pc-windows-msvc`
-2.  Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017). If you have already been using this toolchain then its probably already installed.
-4.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-5.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-python2 mingw-w64-x86_64-ninja`
-6.  Add the msys2 mingw64 binary path to the PATH environment variable.
+1. `rustup default stable-x86_64-pc-windows-msvc`
+2. Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017).
+   If you have already been using this toolchain then its probably already
+   installed.
+3. Install the necessary tools as listed in the above and add their paths
+   to the `PATH` environment variable.
 
 ### windows-gnu Example Setup
 
-windows-gnu toolchain is not supported but you can instead cross-compile to windows-gnu from windows-msvc.
+windows-gnu toolchain is not supported but you can instead cross-compile to
+windows-gnu from windows-msvc.
 
-Steps 1 and 2 are to workaround https://github.com/rust-lang/rust/issues/49078 by using the same mingw that rust uses.
+Steps 1 and 2 are to workaround https://github.com/rust-lang/rust/issues/49078
+by using the same mingw that rust uses.
 
-1.  Download and extract https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rust-ci-mirror/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
-2.  Add the absolute path to mingw64\bin to your PATH environment variable.
-3.  Run the command: `rustup default stable-x86_64-pc-windows-msvc`
-4.  Run the command: `rustup target install x86_64-pc-windows-gnu`
-5.  Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017). If you have already been using this toolchain then its probably already installed.
-7.  Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-8.  Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2 mingw-w64-x86_64-ninja`
-9.  Add the msys2 mingw64 binary path to the PATH environment variable.
-10. Any cargo command that builds the project needs to include `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
+1. Download and extract https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rust-ci-mirror/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
+2. Add the absolute path to mingw64\bin to your PATH environment variable.
+3. Run the command: `rustup default stable-x86_64-pc-windows-msvc`
+4. Run the command: `rustup target install x86_64-pc-windows-gnu`
+5. Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017).
+   If you have already been using this toolchain then its probably already
+   installed.
+6. Install [msys2](http://www.msys2.org/), following ALL of the instructions.
+7. Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2 mingw-w64-x86_64-ninja`
+8. Add the msys2 mingw64 binary path to the PATH environment variable.
+9. Any cargo command that builds the project needs to include
+   `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
 
 ### Linux Example Setup
 
@@ -144,7 +157,8 @@ For example on ubuntu:
 sudo apt-get install build-essential git python cmake
 ```
 
-On Arch linux, the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/) will include glsang and SPIRV libs in a detectable location.
+On Arch linux, the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/)
+will include glslang and SPIRV libs in a detectable location.
 
 ### macOS Example Setup
 
