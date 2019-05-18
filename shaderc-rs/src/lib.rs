@@ -30,7 +30,7 @@
 //!    detection and force building from source.
 //! 2. If the `SHADERC_LIB_DIR` environment variable is set to
 //!    `/path/to/shaderc/libs/`, it will take precedence and
-//!    `libshaderc_combined.a` (and the glsang and SPIRV libraries on Linux)
+//!    `libshaderc_combined.a` (and the glslang and SPIRV libraries on Linux)
 //!    will be searched in the `/path/to/shaderc/libs/` directory.
 //! 3. On Linux, `/usr/lib/` will be automatically searched for system libraries
 //!    if none of the above were given.
