@@ -230,6 +230,26 @@ pub enum ShaderKind {
     DefaultTessEvaluation,
 
     SpirvAssembly,
+
+    RayGeneration,
+    AnyHit,
+    ClosestHit,
+    Miss,
+    Intersection,
+    Callable,
+
+    DefaultRayGeneration,
+    DefaultAnyHit,
+    DefaultClosestHit,
+    DefaultMiss,
+    DefaultIntersection,
+    DefaultCallable,
+
+    Task,
+    Mesh,
+
+    DefaultTask,
+    DefaultMesh,
 }
 
 /// GLSL profile.
