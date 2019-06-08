@@ -20,6 +20,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 static COMBINED_LIB: &str = "shaderc_combined";
+static DYNAMIC_LIB: &str = "shaderc_shared";
 static COMBINED_LIB_FILE: &str = "libshaderc_combined.a";
 static SPIRV_LIB_FILE: &str = "libSPIRV.a";
 
@@ -140,14 +141,14 @@ fn main() {
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
         let combined_lib_path = search_dir.join(COMBINED_LIB_FILE);
-        let dylib_name = format!("{}shaderc{}", consts::DLL_PREFIX, consts::DLL_SUFFIX);
+        let dylib_name = format!("{}{}{}", consts::DLL_PREFIX, DYNAMIC_LIB, consts::DLL_SUFFIX);
         let dylib_path = search_dir.join(dylib_name.clone());
 
-        if let Some((lib_dir, lib_name)) = {
+        if let Some((lib_dir, lib_name, kind)) = {
             if combined_lib_path.exists() {
-                Some((&search_dir_str, COMBINED_LIB))
+                Some((&search_dir_str, COMBINED_LIB, "static"))
             } else if dylib_path.exists() {
-                Some((&search_dir_str, dylib_name.as_str()))
+                Some((&search_dir_str, DYNAMIC_LIB, "dylib"))
             } else {
                 None
             }
@@ -172,7 +173,7 @@ fn main() {
                              libshaderc."
                         );
                     }
-                    println!("cargo:rustc-link-lib=static={}", lib_name);
+                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
@@ -182,14 +183,14 @@ fn main() {
                          experimental"
                     );
                     println!("cargo:rustc-link-search=native={}", lib_dir);
-                    println!("cargo:rustc-link-lib=static={}", lib_name);
+                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("macos", _) => {
                     println!("cargo:warning=MacOS static builds experimental");
                     println!("cargo:rustc-link-search=native={}", lib_dir);
-                    println!("cargo:rustc-link-lib=static={}", lib_name);
+                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
