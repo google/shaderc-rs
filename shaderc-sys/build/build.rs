@@ -50,10 +50,13 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
         // cmake-rs tries to be clever on Windows by injecting several
         // C/C++ flags, which causes problems. So I have to manually
         // define CMAKE_*_FLAGS_* here to suppress that.
-        .define("CMAKE_C_FLAGS", " /nologo /EHsc")
-        .define("CMAKE_CXX_FLAGS", " /nologo /EHsc")
-        .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc")
-        .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc")
+        .define("CMAKE_C_FLAGS", " /nologo /EHsc /MD")
+        .define("CMAKE_CXX_FLAGS", " /nologo /EHsc /MD")
+        .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc /MD")
+        .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc /MD")
+
+        // prevent shaderc's cmake script messes with crt flags
+        .define("SHADERC_ENABLE_SHARED_CRT", "ON")
         .define("CMAKE_INSTALL_LIBDIR", "lib")
         .generator("Ninja");
     config.build()
