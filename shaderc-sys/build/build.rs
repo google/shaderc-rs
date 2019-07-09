@@ -22,7 +22,8 @@ use std::path::{Path, PathBuf};
 static COMBINED_LIB: &str = "shaderc_combined";
 static DYNAMIC_LIB: &str = "shaderc_shared";
 static COMBINED_LIB_FILE: &str = "libshaderc_combined.a";
-static SPIRV_LIB_FILE: &str = "libSPIRV.a";
+static SPIRV_LIB_FILE_A: &str = "libSPIRV.a";
+static SPIRV_LIB_FILE_SO: &str = "libSPIRV.so";
 
 fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
@@ -159,13 +160,23 @@ fn main() {
             match (target_os.as_str(), target_env.as_str()) {
                 ("linux", _) => {
                     println!("cargo:rustc-link-search=native={}", lib_dir);
-                    let spirv_path = search_dir.join(SPIRV_LIB_FILE);
-                    if spirv_path.exists() {
+                    let spirv_a_path = search_dir.join(SPIRV_LIB_FILE_A);
+                    let spirv_so_path = search_dir.join(SPIRV_LIB_FILE_SO);
+                    if spirv_a_path.exists() {
                         println!(
                             "cargo:warning=Found SPIRV.  Linking libSPIRV & \
                              libglslang"
                         );
                         println!("cargo:rustc-link-lib=static=SPIRV");
+                        println!("cargo:rustc-link-lib=static=SPIRV-Tools-opt");
+                        println!("cargo:rustc-link-lib=static=SPIRV-Tools");
+                        println!("cargo:rustc-link-lib=glslang");
+                    } else if spirv_so_path.exists() {
+                        println!(
+                            "cargo:warning=Found {}. Linking it dynamically.",
+                            SPIRV_LIB_FILE_SO
+                        );
+                        println!("cargo:rustc-link-lib=SPIRV");
                         println!("cargo:rustc-link-lib=static=SPIRV-Tools-opt");
                         println!("cargo:rustc-link-lib=static=SPIRV-Tools");
                         println!("cargo:rustc-link-lib=glslang");
