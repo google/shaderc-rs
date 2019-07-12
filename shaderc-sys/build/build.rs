@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 static COMBINED_LIB: &str = "shaderc_combined";
 static DYNAMIC_LIB: &str = "shaderc_shared";
 static COMBINED_LIB_FILE: &str = "libshaderc_combined.a";
+static MSVC_COMBINED_LIB_FILE: &str = "shaderc_combined.lib";
 static SPIRV_LIB_FILE: &str = "libSPIRV.a";
 
 fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
@@ -143,7 +144,13 @@ fn main() {
 
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
-        let combined_lib_path = search_dir.join(COMBINED_LIB_FILE);
+        let combined_lib_path = search_dir.join(
+            if target_os == "windows" && target_env == "msvc" {
+                MSVC_COMBINED_LIB_FILE
+            } else {
+                COMBINED_LIB_FILE
+            }
+        );
         let dylib_name = format!("{}{}{}", consts::DLL_PREFIX, DYNAMIC_LIB, consts::DLL_SUFFIX);
         let dylib_path = search_dir.join(dylib_name.clone());
 
@@ -178,6 +185,15 @@ fn main() {
                     }
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
+                    return;
+                }
+                ("windows", "msvc") => {
+                    println!(
+                        "cargo:warning=Windows MSVC static builds \
+                         experimental"
+                    );
+                    println!("cargo:rustc-link-search=native={}", lib_dir);
+                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     return;
                 }
                 ("windows", "gnu") => {
