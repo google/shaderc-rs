@@ -106,7 +106,7 @@ To build your own libshaderc for the shaderc-sys crate, the following tools
 must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
 - [Git](https://git-scm.com/)
-- [Python](https://www.python.org/) (works with both Python 2.x and 3.x, on
+- [Python](https://www.python.org/) (only works with both Python 3.x, on
   windows the executable must be named `python.exe`)
 - a C++11 compiler
 
@@ -143,7 +143,7 @@ by using the same mingw that rust uses.
    If you have already been using this toolchain then its probably already
    installed.
 6. Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-7. Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python2 mingw-w64-x86_64-ninja`
+7. Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python3 mingw-w64-x86_64-ninja`
 8. Add the msys2 mingw64 binary path to the PATH environment variable.
 9. Any cargo command that builds the project needs to include
    `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
@@ -154,7 +154,7 @@ Use your package manager to install the required dev-tools
 
 For example on ubuntu:
 ```
-sudo apt-get install build-essential git python cmake
+sudo apt-get install build-essential git python3 cmake
 ```
 
 On Arch linux, the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/)

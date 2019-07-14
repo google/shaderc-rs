@@ -1878,7 +1878,7 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_get_spirv_version() {
         let (version, _) = get_spirv_version();
-        assert_eq!((1 << 16) + (3 << 8), version);
+        assert_eq!((1 << 16) + (4 << 8), version);
     }
 
     #[test]
