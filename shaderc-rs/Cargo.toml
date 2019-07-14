@@ -1,6 +1,6 @@
 [package]
 name = "shaderc"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 description = "Rust bindings for shaderc"
 documentation = "https://docs.rs/shaderc"
@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 libc = "0.2"
-shaderc-sys = { version = "0.5.0", path = "../shaderc-sys", features = ["check-inverted-no-defaults"] }
+shaderc-sys = { version = "0.5.1", path = "../shaderc-sys", features = ["check-inverted-no-defaults"] }
 
 [dev-dependencies]
 assert_matches = "1.3"

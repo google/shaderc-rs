@@ -1,6 +1,6 @@
 [package]
 name = "shaderc-sys"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Lei Zhang <antiagainst@gmail.com>", "Mr. Knapp <knappador@gmail.com>"]
 build = "build/build.rs"
 description = "Shaderc system library FFI, building, and linking"
