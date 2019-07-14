@@ -49,7 +49,7 @@
 #![allow(non_camel_case_types)]
 
 extern crate libc;
-use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t};
+use libc::{c_char, c_int, c_void, size_t};
 
 pub enum ShadercCompiler {}
 pub enum ShadercCompileOptions {}
@@ -83,7 +83,7 @@ extern "C" {
         compiler: *const ShadercCompiler,
         source_text: *const c_char,
         source_size: size_t,
-        shader_kind: int32_t,
+        shader_kind: i32,
         input_file_name: *const c_char,
         entry_point_name: *const c_char,
         additional_options: *const ShadercCompileOptions,
@@ -92,7 +92,7 @@ extern "C" {
         compiler: *const ShadercCompiler,
         source_text: *const c_char,
         source_size: size_t,
-        shader_kind: int32_t,
+        shader_kind: i32,
         input_file_name: *const c_char,
         entry_point_name: *const c_char,
         additional_options: *const ShadercCompileOptions,
@@ -101,7 +101,7 @@ extern "C" {
         compiler: *const ShadercCompiler,
         source_text: *const c_char,
         source_size: size_t,
-        shader_kind: int32_t,
+        shader_kind: i32,
         input_file_name: *const c_char,
         entry_point_name: *const c_char,
         additional_options: *const ShadercCompileOptions,
@@ -128,17 +128,17 @@ extern "C" {
     );
     pub fn shaderc_compile_options_set_source_language(
         options: *mut ShadercCompileOptions,
-        language: int32_t,
+        language: i32,
     );
     pub fn shaderc_compile_options_set_generate_debug_info(options: *mut ShadercCompileOptions);
     pub fn shaderc_compile_options_set_optimization_level(
         options: *mut ShadercCompileOptions,
-        level: int32_t,
+        level: i32,
     );
     pub fn shaderc_compile_options_set_forced_version_profile(
         options: *mut ShadercCompileOptions,
         version: c_int,
-        profile: int32_t,
+        profile: i32,
     );
     pub fn shaderc_compile_options_set_include_callbacks(
         options: *mut ShadercCompileOptions,
@@ -150,12 +150,12 @@ extern "C" {
     pub fn shaderc_compile_options_set_warnings_as_errors(options: *mut ShadercCompileOptions);
     pub fn shaderc_compile_options_set_target_env(
         options: *mut ShadercCompileOptions,
-        env: int32_t,
-        version: uint32_t,
+        env: i32,
+        version: u32,
     );
     pub fn shaderc_compile_options_set_limit(
         options: *mut ShadercCompileOptions,
-        limit: int32_t,
+        limit: i32,
         value: c_int,
     );
     pub fn shaderc_compile_options_set_auto_bind_uniforms(
@@ -173,13 +173,13 @@ extern "C" {
     pub fn shaderc_compile_options_set_binding_base(
         options: *mut ShadercCompileOptions,
         resource_kind: c_int,
-        base: uint32_t,
+        base: u32,
     );
     pub fn shaderc_compile_options_set_binding_base_for_stage(
         options: *mut ShadercCompileOptions,
         shader_kind: c_int,
         resource_kind: c_int,
-        base: uint32_t,
+        base: u32,
     );
     pub fn shaderc_compile_options_set_hlsl_register_set_and_binding(
         options: *mut ShadercCompileOptions,
@@ -198,7 +198,7 @@ extern "C" {
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_compilation_status(
         result: *const ShadercCompilationResult,
-    ) -> int32_t;
+    ) -> i32;
     pub fn shaderc_result_get_num_errors(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_num_warnings(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_error_message(
@@ -211,6 +211,6 @@ extern "C" {
     pub fn shaderc_parse_version_profile(
         str: *const c_char,
         version: *mut c_int,
-        profile: *mut int32_t,
+        profile: *mut i32,
     ) -> bool;
 }

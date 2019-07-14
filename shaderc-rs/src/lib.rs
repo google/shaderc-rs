@@ -77,7 +77,7 @@ extern crate shaderc_sys;
 
 use shaderc_sys as scs;
 
-use libc::{c_char, c_int, c_void, int32_t, size_t, uint32_t, uint8_t};
+use libc::{c_char, c_int, c_void, size_t};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
@@ -488,7 +488,7 @@ impl Compiler {
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
-                    shader_kind as int32_t,
+                    shader_kind as i32,
                     c_file.as_ptr(),
                     c_entry_point.as_ptr(),
                     additional_options.map_or(ptr::null(), |ref o| o.raw),
@@ -524,7 +524,7 @@ impl Compiler {
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
-                    shader_kind as int32_t,
+                    shader_kind as i32,
                     c_file.as_ptr(),
                     c_entry_point.as_ptr(),
                     additional_options.map_or(ptr::null(), |ref o| o.raw),
@@ -556,7 +556,7 @@ impl Compiler {
                     c_source.as_ptr(),
                     source_size,
                     // Stage doesn't matter for preprocess
-                    ShaderKind::Vertex as int32_t,
+                    ShaderKind::Vertex as i32,
                     c_file.as_ptr(),
                     c_entry_point.as_ptr(),
                     additional_options.map_or(ptr::null(), |ref o| o.raw),
@@ -676,14 +676,14 @@ impl<'a> CompileOptions<'a> {
     /// `version` will be used for distinguishing between different versions
     /// of the target environment. "0" is the only supported value right now.
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
-        unsafe { scs::shaderc_compile_options_set_target_env(self.raw, env as int32_t, version) }
+        unsafe { scs::shaderc_compile_options_set_target_env(self.raw, env as i32, version) }
     }
 
     /// Sets the source language.
     ///
     /// The default is GLSL if not set.
     pub fn set_source_language(&mut self, language: SourceLanguage) {
-        unsafe { scs::shaderc_compile_options_set_source_language(self.raw, language as int32_t) }
+        unsafe { scs::shaderc_compile_options_set_source_language(self.raw, language as i32) }
     }
 
     /// Forces the GLSL language `version` and `profile`.
@@ -698,7 +698,7 @@ impl<'a> CompileOptions<'a> {
             scs::shaderc_compile_options_set_forced_version_profile(
                 self.raw,
                 version as c_int,
-                profile as int32_t,
+                profile as i32,
             )
         }
     }
@@ -858,7 +858,7 @@ impl<'a> CompileOptions<'a> {
     /// Sets the resource `limit` to the given `value`.
     pub fn set_limit(&mut self, limit: Limit, value: i32) {
         unsafe {
-            scs::shaderc_compile_options_set_limit(self.raw, limit as int32_t, value as c_int)
+            scs::shaderc_compile_options_set_limit(self.raw, limit as i32, value as c_int)
         }
     }
 
@@ -898,7 +898,7 @@ impl<'a> CompileOptions<'a> {
     /// to this specified base.
     pub fn set_binding_base(&mut self, resource_kind: ResourceKind, base: u32) {
         unsafe {
-            scs::shaderc_compile_options_set_binding_base(self.raw, resource_kind as int32_t, base);
+            scs::shaderc_compile_options_set_binding_base(self.raw, resource_kind as i32, base);
         }
     }
 
@@ -912,8 +912,8 @@ impl<'a> CompileOptions<'a> {
         unsafe {
             scs::shaderc_compile_options_set_binding_base_for_stage(
                 self.raw,
-                shader_kind as int32_t,
-                resource_kind as int32_t,
+                shader_kind as i32,
+                resource_kind as i32,
                 base,
             );
         }
@@ -949,7 +949,7 @@ impl<'a> CompileOptions<'a> {
         unsafe {
             scs::shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
                 self.raw,
-                kind as int32_t,
+                kind as i32,
                 c_register.as_ptr(),
                 c_set.as_ptr(),
                 c_binding.as_ptr(),
@@ -995,7 +995,7 @@ impl<'a> CompileOptions<'a> {
     ///
     /// If mulitple invocations for this method, only the last one takes effect.
     pub fn set_optimization_level(&mut self, level: OptimizationLevel) {
-        unsafe { scs::shaderc_compile_options_set_optimization_level(self.raw, level as int32_t) }
+        unsafe { scs::shaderc_compile_options_set_optimization_level(self.raw, level as i32) }
     }
 
     /// Sets the compiler mode to generate debug information in the output.
@@ -1061,7 +1061,7 @@ impl CompilationArtifact {
 
         unsafe {
             let p = scs::shaderc_result_get_bytes(self.raw);
-            slice::from_raw_parts(p as *const uint32_t, num_words)
+            slice::from_raw_parts(p as *const u32, num_words)
         }
     }
 
@@ -1081,7 +1081,7 @@ impl CompilationArtifact {
 
         unsafe {
             let p = scs::shaderc_result_get_bytes(self.raw);
-            slice::from_raw_parts(p as *const uint8_t, self.len())
+            slice::from_raw_parts(p as *const u8, self.len())
         }
     }
 
