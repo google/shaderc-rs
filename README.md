@@ -23,7 +23,7 @@ First add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-shaderc = "0.5"
+shaderc = "0.6"
 ```
 
 Then add to your crate root:
@@ -174,7 +174,7 @@ This project is initialized and mainly developed by Lei Zhang
 ([@antiagainst][me]).
 
 [shaderc]: https://github.com/google/shaderc
-[doc-compiler]: https://docs.rs/shaderc/0.5/shaderc/struct.Compiler.html
-[doc-options]: https://docs.rs/shaderc/0.5/shaderc/struct.CompileOptions.html
-[doc-artifact]: https://docs.rs/shaderc/0.5/shaderc/struct.CompilationArtifact.html
+[doc-compiler]: https://docs.rs/shaderc/0.6/shaderc/struct.Compiler.html
+[doc-options]: https://docs.rs/shaderc/0.6/shaderc/struct.CompileOptions.html
+[doc-artifact]: https://docs.rs/shaderc/0.6/shaderc/struct.CompilationArtifact.html
 [me]: https://github.com/antiagainst
