@@ -20,11 +20,16 @@ matrix:
     - channel: nightly
 
 install:
+  # Install Rust toolchain
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init -yv --default-toolchain %channel% --default-host %host%
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - if not %target% == %host% rustup target add %target%
   - rustc -vV && cargo -vV
+
+  # Use Python 3
+  - set PATH=C:\Python37;%PATH%
+  - python --version
 
   # Ninja is required to build with Visual Studio because MSBuild does not
   # support paths longer than MAX_PATH
