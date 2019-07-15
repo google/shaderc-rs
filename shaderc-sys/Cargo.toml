@@ -17,11 +17,6 @@ name = "shaderc_sys"
 [features]
 build-from-source = []
 
-# NOTE: The following features are specifically for supporting a deprecated
-# feature in shaderc-rs. They will be removed in the next release.
-check-inverted-no-defaults = []
-inverted-no-defaults = []
-
 [dependencies]
 libc = "0.2"
 

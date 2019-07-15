@@ -89,12 +89,6 @@ shaderc-sys when building shaderc-rs:
 4. If no other option was set or succeeded, shaderc-sys will fall back to
    checking out and compiling a copy of shaderc.  This procedure is quite slow.
 
-NOTE: `--no-default-features` still works on shaderc-rs, but shaderc-sys
-implements this behavior in a deprecated manner, and it will be removed in the
-next release.  This method only works with a monolithic `libshaderc_combined.a`.
-Refer to pre-0.5 documentation for more information.
-Prefer `SHADERC_LIB_DIR="/path/to/shaderc/libs/"`.
-
 Building from Source
 --------------------
 

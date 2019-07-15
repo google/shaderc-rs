@@ -14,19 +14,10 @@ path = "src/lib.rs"
 
 [dependencies]
 libc = "0.2"
-shaderc-sys = { version = "0.5.1", path = "../shaderc-sys", features = ["check-inverted-no-defaults"] }
+shaderc-sys = { version = "0.5.1", path = "../shaderc-sys" }
 
 [dev-dependencies]
 assert_matches = "1.3"
 
 [features]
 build-from-source = ["shaderc-sys/build-from-source"]
-
-# NOTE: The following feature is deprecated. It will be removed in the next
-# release.
-
-# The `inverted-no-defaults` behavior is enabled by setting this feature.
-check-inverted-no-defaults = ["shaderc-sys/check-inverted-no-defaults"]
-# This feature is logically inverted, so you "set" it by clearing it, by passing
-# the --no-defaults option to cargo when building this crate.
-default = ["shaderc-sys/inverted-no-defaults"]

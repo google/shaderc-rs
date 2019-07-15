@@ -69,27 +69,6 @@ fn main() {
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
     let explicit_lib_dir_set = env::var("SHADERC_LIB_DIR").is_ok();
 
-    // Deprecated --no-defaults behavior from before shaderc-rs & shaderc-sys split
-    // This block is only relevant to shaderc-rs but will skip all subsequent
-    // build options
-    if env::var("CARGO_FEATURE_CHECK_INVERTED_NO_DEFAULTS").is_ok()
-        && env::var("CARGO_FEATURE_INVERTED_NO_DEFAULTS").is_err()
-    {
-        let out_dir = env::var("OUT_DIR").unwrap();
-        println!("cargo:warning=USE OF --no-default-features IS DEPRECATED BEHAVIOR.");
-        println!(
-            "cargo:warning=Requested to use cargo out directory to find libshaderc_combined.a"
-        );
-        println!(
-            "cargo:warning=Searching {} for shaderc_combined static lib...",
-            out_dir
-        );
-        println!("cargo:rustc-link-search=native={}", out_dir);
-        println!("cargo:rustc-link-lib=static=shaderc_combined");
-        emit_std_cpp_link();
-        return;
-    }
-
     // Initialize explicit libshaderc search directory first
     let mut search_dir = if let Ok(lib_dir) = env::var("SHADERC_LIB_DIR") {
         println!(
