@@ -23,8 +23,6 @@ static SHADERC_STATIC_LIB: &str = "shaderc_combined";
 static SHADERC_SHARED_LIB: &str = "shaderc_shared";
 static SHADERC_STATIC_LIB_FILE: &str = "libshaderc_combined.a";
 static SHADERC_STATIC_LIB_FILE_MSVC: &str = "shaderc_combined.lib";
-static SPIRV_STATIC_LIB_FILE: &str = "libSPIRV.a";
-static SPIRV_SHARED_LIB_FILE: &str = "libSPIRV.so";
 
 fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
@@ -63,10 +61,20 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     config.build()
 }
 
+fn probe_linux_lib_kind(lib_name: &str, search_dir: &PathBuf) -> Option<&'static str> {
+    if search_dir.join(&format!("lib{}.so", lib_name)).exists() {
+        Some("dylib")
+    } else if search_dir.join(&format!("lib{}.a", lib_name)).exists() {
+        Some("static")
+    } else {
+        None
+    }
+}
+
 fn main() {
-    let config_build_from_source = env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_ok();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
+    let config_build_from_source = env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_ok();
     let explicit_lib_dir_set = env::var("SHADERC_LIB_DIR").is_ok();
 
     // Initialize explicit libshaderc search directory first
@@ -120,12 +128,14 @@ fn main() {
 
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
+
         let combined_lib_path =
             search_dir.join(if target_os == "windows" && target_env == "msvc" {
                 SHADERC_STATIC_LIB_FILE_MSVC
             } else {
                 SHADERC_STATIC_LIB_FILE
             });
+
         let dylib_name = format!(
             "{}{}{}",
             consts::DLL_PREFIX,
@@ -134,40 +144,47 @@ fn main() {
         );
         let dylib_path = search_dir.join(dylib_name.clone());
 
-        if let Some((lib_dir, lib_name, kind)) = {
+        if let Some((lib_name, kind)) = {
             if combined_lib_path.exists() {
-                Some((&search_dir_str, SHADERC_STATIC_LIB, "static"))
+                Some((SHADERC_STATIC_LIB, "static"))
             } else if dylib_path.exists() {
-                Some((&search_dir_str, SHADERC_SHARED_LIB, "dylib"))
+                Some((SHADERC_SHARED_LIB, "dylib"))
             } else {
                 None
             }
         } {
             match (target_os.as_str(), target_env.as_str()) {
                 ("linux", _) => {
-                    println!("cargo:rustc-link-search=native={}", lib_dir);
-                    if let Some((spirv_lib_kind, spirv_lib_link)) = {
-                        if search_dir.join(SPIRV_SHARED_LIB_FILE).exists() {
-                            Some(("shared", ""))
-                        } else if search_dir.join(SPIRV_STATIC_LIB_FILE).exists() {
-                            Some(("static", "static="))
-                        } else {
-                            None
-                        }
-                    } {
-                        println!(
-                            "cargo:warning=Found and linking {} system installed SPIRV libraries.",
-                            spirv_lib_kind
-                        );
-                        println!("cargo:rustc-link-lib={}SPIRV", spirv_lib_link);
-                        println!("cargo:rustc-link-lib=static=SPIRV-Tools-opt");
-                        println!("cargo:rustc-link-lib=static=SPIRV-Tools");
-                        println!("cargo:rustc-link-lib=glslang");
-                    } else {
+                    println!("cargo:rustc-link-search=native={}", search_dir_str);
+
+                    // Libraries from the SPIRV-Tools project
+                    let spirv_tools_lib = probe_linux_lib_kind("SPIRV-Tools", &search_dir);
+                    let spirv_tools_opt_lib = probe_linux_lib_kind("SPIRV-Tools-opt", &search_dir);
+                    // Libraries from the Glslang project
+                    let spirv_lib = probe_linux_lib_kind("SPIRV", &search_dir);
+                    let glslang_lib = probe_linux_lib_kind("glslang", &search_dir);
+
+                    if spirv_tools_lib.is_none()
+                        || spirv_tools_opt_lib.is_none()
+                        || spirv_lib.is_none()
+                        || glslang_lib.is_none()
+                    {
                         println!(
                             "cargo:warning=Only shaderc library found.  \
-                             Assuming SPIRV & glslang libraries built into provided \
-                             shaderc library."
+                             Assuming libraries it depends on are built into \
+                             the shaderc library."
+                        );
+                    } else {
+                        println!("cargo:warning=Found and linking system installed Glslang and SPIRV-Tools libraries.");
+                        println!("cargo:rustc-link-lib={}=glslang", glslang_lib.unwrap());
+                        println!("cargo:rustc-link-lib={}=SPIRV", spirv_lib.unwrap());
+                        println!(
+                            "cargo:rustc-link-lib={}=SPIRV-Tools",
+                            spirv_tools_lib.unwrap()
+                        );
+                        println!(
+                            "cargo:rustc-link-lib={}=SPIRV-Tools-opt",
+                            spirv_tools_opt_lib.unwrap()
                         );
                     }
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
@@ -176,20 +193,20 @@ fn main() {
                 }
                 ("windows", "msvc") => {
                     println!("cargo:warning=Windows MSVC static builds experimental");
-                    println!("cargo:rustc-link-search=native={}", lib_dir);
+                    println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     return;
                 }
                 ("windows", "gnu") => {
                     println!("cargo:warning=Windows MinGW static builds experimental");
-                    println!("cargo:rustc-link-search=native={}", lib_dir);
+                    println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("macos", _) => {
                     println!("cargo:warning=MacOS static builds experimental");
-                    println!("cargo:rustc-link-search=native={}", lib_dir);
+                    println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
