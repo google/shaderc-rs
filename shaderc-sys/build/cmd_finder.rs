@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::env;
-use std::ffi::{OsString, OsStr};
+use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 
 pub struct CommandFinder {
@@ -18,26 +18,31 @@ impl CommandFinder {
     pub fn new() -> Self {
         Self {
             cache: HashMap::new(),
-            path: env::var_os("PATH").unwrap_or_default()
+            path: env::var_os("PATH").unwrap_or_default(),
         }
     }
 
     pub fn maybe_have<S: AsRef<OsStr>>(&mut self, cmd: S) -> Option<PathBuf> {
         let cmd: OsString = cmd.as_ref().into();
         let path = self.path.clone();
-        self.cache.entry(cmd.clone()).or_insert_with(|| {
-            for path in env::split_paths(&path) {
-                let target = path.join(&cmd);
-                let mut cmd_alt = cmd.clone();
-                cmd_alt.push(".exe");
-                if target.is_file() || // some/path/git
+        self.cache
+            .entry(cmd.clone())
+            .or_insert_with(|| {
+                for path in env::split_paths(&path) {
+                    let target = path.join(&cmd);
+                    let mut cmd_alt = cmd.clone();
+                    cmd_alt.push(".exe");
+                    if target.is_file() || // some/path/git
                 target.with_extension("exe").exists() || // some/path/git.exe
-                target.join(&cmd_alt).exists() { // some/path/git/git.exe
-                    return Some(target);
+                target.join(&cmd_alt).exists()
+                    {
+                        // some/path/git/git.exe
+                        return Some(target);
+                    }
                 }
-            }
-            None
-        }).clone()
+                None
+            })
+            .clone()
     }
 
     pub fn must_have<S: AsRef<OsStr>>(&mut self, cmd: S) -> PathBuf {
