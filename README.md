@@ -73,21 +73,46 @@ assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 
 Setup
 -----
+shaderc-rs needs [shaderc library](https://github.com/google/shaderc) be installed
+
+shaderc library can be obtained from [here](https://github.com/google/shaderc#downloads)
+and linked, or can be [built from source](#building-from-source):
+
+1. Setup, using static linking
+    - On Linux, If the `SHADERC_LIB_DIR` environment variable is set to
+      `/path/to/shaderc/libs/`, it will take precedence and `libshaderc_combined.a`
+      (and the glsang and SPIRV libraries) will be searched in the
+      `/path/to/shaderc/libs/` directory. 
+    - On Linux, `/usr/lib/` will be automatically searched for `libshaderc_combined.a`
+      if `SHADERC_LIB_DIR` is not setted.
+    - On Windows MSVC, If the `SHADERC_LIB_DIR` environment variable is set to
+      `/path/to/shaderc/libs/`, `shaderc_combined.lib` will be searched in the
+      `/path/to/shaderc/libs/` directory
+2. Setup, using dynamic linking
+    - On Linux, `libshaderc_shared.so` will be searched in the `SHADERC_LIB_DIR`
+      environment variable or in the `/usr/lib/`
+    - On Linux, `/usr/lib/` will be automatically searched for `libshaderc_shared.so`
+      if `SHADERC_LIB_DIR` is not setted.
+    - On Windows (MSVC and gnu), If the `SHADERC_LIB_DIR` environment variable is set to
+      `/path/to/shaderc/bin/`, `shaderc_shared.dll` will be searched in the 
+      `/path/to/shaderc/bin/` directory
+3. Building from source
+    - If library detection failed, shaderc-sys will fall back to
+      checking out and compiling a copy of shaderc.  This procedure is quite slow.
+    - The option `--features build-from-source` will prevent automatic library
+      detection and force building from source.
+    - See [Building from Source](#building-from-source) section for details
 
 The order of preference in which the build script will attempt to obtain
 shaderc can be controlled by several options, which are passed through to
 shaderc-sys when building shaderc-rs:
 
-1. The option `--features build-from-source` will prevent automatic library
-   detection and force building from source.
-2. If the `SHADERC_LIB_DIR` environment variable is set to
-   `/path/to/shaderc/libs/`, it will take precedence and `libshaderc_combined.a`
-   (and the glsang and SPIRV libraries on Linux) will be searched in the
-   `/path/to/shaderc/libs/` directory.
-3. On Linux, `/usr/lib/` will be automatically searched for system libraries
-   if none of the above were given.
-4. If no other option was set or succeeded, shaderc-sys will fall back to
-   checking out and compiling a copy of shaderc.  This procedure is quite slow.
+1. Building from source, if option `--features build-from-source` is used.
+2. If the SHADERC_LIB_DIR environment variable is set to `/path/to/shaderc/libs/`,
+   `/path/to/shaderc/libs/` will be searched for static and dynamic libs.
+3. On Linux, `/usr/lib/` will be searched for static and dynamic libs
+   if the SHADERC_LIB_DIR is not setted
+4. Building from source, if library detection failed.
 
 Building from Source
 --------------------
