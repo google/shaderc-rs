@@ -40,6 +40,8 @@ fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
 }
 
 fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
+    let linkage = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or(String::new());
+
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
@@ -47,17 +49,30 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
         .define("SHADERC_SKIP_TESTS", "ON")
-        // cmake-rs tries to be clever on Windows by injecting several
-        // C/C++ flags, which causes problems. So I have to manually
-        // define CMAKE_*_FLAGS_* here to suppress that.
-        .define("CMAKE_C_FLAGS", " /nologo /EHsc /MD")
-        .define("CMAKE_CXX_FLAGS", " /nologo /EHsc /MD")
-        .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc /MD")
-        .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc /MD")
-        // prevent shaderc's cmake script messes with crt flags
-        .define("SHADERC_ENABLE_SHARED_CRT", "ON")
         .define("CMAKE_INSTALL_LIBDIR", "lib")
         .generator("Ninja");
+
+    // cmake-rs tries to be clever on Windows by injecting several
+    // C/C++ flags, which causes problems. So I have to manually
+    // define CMAKE_*_FLAGS_* here to suppress that.
+    let config = if linkage.contains("crt-static") {
+        // statically-linked CRT
+        config
+            .define("CMAKE_C_FLAGS", " /nologo /EHsc /MT")
+            .define("CMAKE_CXX_FLAGS", " /nologo /EHsc /MT")
+            .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc /MT")
+            .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc /MT")
+    } else {
+        // dynamically-linked CRT
+        config
+            .define("CMAKE_C_FLAGS", " /nologo /EHsc /MD")
+            .define("CMAKE_CXX_FLAGS", " /nologo /EHsc /MD")
+            .define("CMAKE_C_FLAGS_RELEASE", " /nologo /EHsc /MD")
+            .define("CMAKE_CXX_FLAGS_RELEASE", " /nologo /EHsc /MD")
+            // prevent shaderc's cmake script messes with crt flags
+            .define("SHADERC_ENABLE_SHARED_CRT", "ON")
+    };
+
     config.build()
 }
 
