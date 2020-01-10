@@ -98,11 +98,17 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::CompilationError(c, ref r) => {
-                if r.is_empty() {
-                    write!(f, "{} compilation error(s)", c)
+                if c == 1 {
+                    write!(f, "compilation error")?;
                 } else {
-                    write!(f, "{} compilation error(s): {}", c, r)
+                    write!(f, "{} compilation errors", c)?;
                 }
+
+                if !r.is_empty() {
+                    write!(f, ":{}{}", if r.contains('\n') { "\n" } else { " " }, r)?;
+                }
+
+                Ok(())
             }
             Error::InternalError(ref r) => {
                 if r.is_empty() {
