@@ -9,6 +9,10 @@ environment:
       target: x86_64-pc-windows-msvc
     - channel: stable
       host: x86_64-pc-windows-msvc
+      target: x86_64-pc-windows-msvc
+      RUSTFLAGS: "-C target-feature=+crt-static"
+    - channel: stable
+      host: x86_64-pc-windows-msvc
       target: x86_64-pc-windows-gnu
       mingw: x86_64-6.3.0-posix-seh-rt_v5-rev1
     - channel: nightly
