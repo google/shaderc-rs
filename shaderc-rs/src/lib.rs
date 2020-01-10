@@ -607,7 +607,7 @@ impl Drop for Compiler {
 pub struct CompileOptions<'a> {
     raw: *mut scs::ShadercCompileOptions,
     f: Option<
-        Box<Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>,
+        Box<dyn Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>,
     >,
 }
 
@@ -634,7 +634,7 @@ pub struct ResolvedInclude {
 }
 
 thread_local! {
-    static PANIC_ERROR: RefCell<Option<Box<Any + Send + 'static>>> = RefCell::new(None);
+    static PANIC_ERROR: RefCell<Option<Box<dyn Any + Send + 'static>>> = RefCell::new(None);
 }
 
 impl<'a> CompileOptions<'a> {
@@ -728,7 +728,7 @@ impl<'a> CompileOptions<'a> {
         let f_ptr = &*f as *const F;
         self.f = Some(
             f as Box<
-                Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
+                dyn Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
             >,
         );
         unsafe {
@@ -780,7 +780,7 @@ impl<'a> CompileOptions<'a> {
                         resolved_name,
                         content,
                     }) => {
-                        if resolved_name.len() == 0 {
+                        if resolved_name.is_empty() {
                             panic!("include callback: empty strings for resolved include names not allowed");
                         }
                         let mut result = Box::new(OkResultWrapper {
@@ -966,8 +966,7 @@ impl<'a> CompileOptions<'a> {
     /// new value.
     pub fn add_macro_definition(&mut self, name: &str, value: Option<&str>) {
         let c_name = CString::new(name).expect("cannot convert name to c string");
-        if value.is_some() {
-            let value = value.unwrap();
+        if let Some(value) = value {
             let c_value = CString::new(value).expect("cannot convert value to c string");
             unsafe {
                 scs::shaderc_compile_options_add_macro_definition(
@@ -1036,7 +1035,7 @@ impl CompilationArtifact {
     fn new(result: *mut scs::ShadercCompilationResult, is_binary: bool) -> CompilationArtifact {
         CompilationArtifact {
             raw: result,
-            is_binary: is_binary,
+            is_binary,
         }
     }
 
@@ -1099,7 +1098,6 @@ impl CompilationArtifact {
             let p = scs::shaderc_result_get_bytes(self.raw);
             let bytes = CStr::from_ptr(p).to_bytes();
             str::from_utf8(bytes)
-                .ok()
                 .expect("invalid utf-8 string")
                 .to_string()
         }
@@ -1149,7 +1147,7 @@ pub fn parse_version_profile(string: &str) -> Option<(u32, GlslProfile)> {
     let result = unsafe {
         scs::shaderc_parse_version_profile(c_string.as_ptr(), &mut version, &mut profile)
     };
-    if result == false {
+    if !result {
         None
     } else {
         let p = match profile {
@@ -1167,26 +1165,26 @@ pub fn parse_version_profile(string: &str) -> Option<(u32, GlslProfile)> {
 mod tests {
     use super::*;
 
-    static VOID_MAIN: &'static str = "#version 310 es\n void main() {}";
-    static VOID_E: &'static str = "#version 310 es\n void E() {}";
-    static EXTRA_E: &'static str = "#version 310 es\n E\n void main() {}";
-    static IFDEF_E: &'static str = "#version 310 es\n #ifdef E\n void main() {}\n\
+    static VOID_MAIN: &str = "#version 310 es\n void main() {}";
+    static VOID_E: &str = "#version 310 es\n void E() {}";
+    static EXTRA_E: &str = "#version 310 es\n E\n void main() {}";
+    static IFDEF_E: &str = "#version 310 es\n #ifdef E\n void main() {}\n\
                                     #else\n #error\n #endif";
-    static HLSL_VERTEX: &'static str = "float4 main(uint index: SV_VERTEXID): SV_POSITION\n\
+    static HLSL_VERTEX: &str = "float4 main(uint index: SV_VERTEXID): SV_POSITION\n\
                                         { return float4(1., 2., 3., 4.); }";
-    static TWO_ERROR: &'static str = "#version 310 es\n #error one\n #error two\n void main() {}";
-    static TWO_ERROR_MSG: &'static str = "shader.glsl:2: error: '#error' : one\n\
+    static TWO_ERROR: &str = "#version 310 es\n #error one\n #error two\n void main() {}";
+    static TWO_ERROR_MSG: &str = "shader.glsl:2: error: '#error' : one\n\
                                           shader.glsl:3: error: '#error' : two\n";
-    static ONE_WARNING: &'static str = "#version 400\n\
+    static ONE_WARNING: &str = "#version 400\n\
                                         layout(location = 0) attribute float x;\n void main() {}";
-    static ONE_WARNING_MSG: &'static str = "\
+    static ONE_WARNING_MSG: &str = "\
 shader.glsl:2: warning: attribute deprecated in version 130; may be removed in future release
 ";
-    static DEBUG_INFO: &'static str = "#version 140\n \
+    static DEBUG_INFO: &str = "#version 140\n \
                                        void main() {\n vec2 debug_info_sample = vec2(1.0);\n }";
-    static CORE_PROFILE: &'static str = "void main() {\n gl_ClipDistance[0] = 5.;\n }";
+    static CORE_PROFILE: &str = "void main() {\n gl_ClipDistance[0] = 5.;\n }";
 
-    static TWO_FN: &'static str = "\
+    static TWO_FN: &str = "\
 #version 450
 layout(location=0) in  int inVal;
 layout(location=0) out int outVal;
@@ -1194,14 +1192,14 @@ int foo(int a) { return a; }
 void main() { outVal = foo(inVal); }";
 
     /// A shader that compiles under OpenGL compatibility but not core profile rules.
-    static COMPAT_FRAG: &'static str = "\
+    static COMPAT_FRAG: &str = "\
 #version 100
 layout(binding = 0) uniform highp sampler2D tex;
 void main() {
     gl_FragColor = texture2D(tex, vec2(0.));
 }";
 
-    static VOID_MAIN_ASSEMBLY: &'static str = "\
+    static VOID_MAIN_ASSEMBLY: &str = "\
 ; SPIR-V
 ; Version: 1.0
 ; Generator: Google Shaderc over Glslang; 7
@@ -1223,7 +1221,7 @@ void main() {
                OpFunctionEnd
 ";
 
-    static UNIFORMS_NO_BINDINGS: &'static str = "\
+    static UNIFORMS_NO_BINDINGS: &str = "\
 #version 450
 #extension GL_ARB_sparse_texture2 : enable
 uniform texture2D my_tex;
@@ -1239,7 +1237,7 @@ void main() {
   float x = my_ubo.x;
 }";
 
-    static GLSL_WEIRD_PACKING: &'static str = "\
+    static GLSL_WEIRD_PACKING: &str = "\
 #version 450
 buffer B { float x; vec3 foo; } my_ssbo;
 void main() { my_ssbo.x = 1.0; }";
@@ -1251,7 +1249,7 @@ void main() { my_ssbo.x = 1.0; }";
             .compile_into_spirv(VOID_MAIN, ShaderKind::Vertex, "shader.glsl", "main", None)
             .unwrap();
         assert!(result.len() > 20);
-        assert!(result.as_binary().first() == Some(&0x07230203));
+        assert!(result.as_binary().first() == Some(&0x0723_0203));
         let function_end_word: u32 = (1 << 16) | 56;
         assert!(result.as_binary().last() == Some(&function_end_word));
     }
@@ -1281,7 +1279,7 @@ void main() { my_ssbo.x = 1.0; }";
         let mut c = Compiler::new().unwrap();
         let result = c.assemble(VOID_MAIN_ASSEMBLY, None).unwrap();
         assert!(result.len() > 20);
-        assert!(result.as_binary().first() == Some(&0x07230203));
+        assert!(result.as_binary().first() == Some(&0x0723_0203));
         let function_end_word: u32 = (1 << 16) | 56;
         assert!(result.as_binary().last() == Some(&function_end_word));
     }
@@ -1370,7 +1368,7 @@ void main() { my_ssbo.x = 1.0; }";
             )
             .unwrap();
         assert!(result.len() > 20);
-        assert!(result.as_binary().first() == Some(&0x07230203));
+        assert!(result.as_binary().first() == Some(&0x0723_0203));
         let function_end_word: u32 = (1 << 16) | 56;
         assert!(result.as_binary().last() == Some(&function_end_word));
     }
@@ -1459,7 +1457,7 @@ void main() { my_ssbo.x = 1.0; }";
             )
             .unwrap();
         assert!(result.len() > 20);
-        assert!(result.as_binary().first() == Some(&0x07230203));
+        assert!(result.as_binary().first() == Some(&0x0723_0203));
         let function_end_word: u32 = (1 << 16) | 56;
         assert!(result.as_binary().last() == Some(&function_end_word));
     }
