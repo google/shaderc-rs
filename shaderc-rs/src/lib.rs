@@ -1202,7 +1202,7 @@ void main() {
     static VOID_MAIN_ASSEMBLY: &str = "\
 ; SPIR-V
 ; Version: 1.0
-; Generator: Google Shaderc over Glslang; 7
+; Generator: Google Shaderc over Glslang; 8
 ; Bound: 6
 ; Schema: 0
                OpCapability Shader
@@ -1237,9 +1237,10 @@ void main() {
   float x = my_ubo.x;
 }";
 
-    static GLSL_WEIRD_PACKING: &str = "\
+    static GLSL_EXPLICT_BINDING: &str = "\
 #version 450
-buffer B { float x; vec3 foo; } my_ssbo;
+layout(set=0, binding=0)
+buffer B { float x; vec3 y; } my_ssbo;
 void main() { my_ssbo.x = 1.0; }";
 
     #[test]
@@ -1603,7 +1604,7 @@ void main() { my_ssbo.x = 1.0; }";
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(4, ref s))
-                            if s.contains("error: #version: ES shaders for Vulkan SPIR-V \
+                            if s.contains("error: #version: ES shaders for SPIR-V \
                                            require version 310 or higher"));
     }
 
@@ -1622,8 +1623,8 @@ void main() { my_ssbo.x = 1.0; }";
         assert!(result.is_err());
         assert_matches!(result.err(),
                         Some(Error::CompilationError(3, ref s))
-                            if s.contains("error: #version: ES shaders for OpenGL SPIR-V \
-                                           are not supported"));
+                            if s.contains("error: #version: ES shaders for SPIR-V require \
+                                           version 310 or higher"));
     }
 
     /// Returns a fragment shader accessing a texture with the given offset.
@@ -1706,7 +1707,7 @@ void main() { my_ssbo.x = 1.0; }";
         );
         assert!(result.is_err());
         assert_matches!(result.err(),
-                        Some(Error::CompilationError(4, ref s))
+                        Some(Error::CompilationError(_, ref s))
                             if s.contains("error: 'binding' : sampler/texture/image requires layout(binding=X)"));
     }
 
@@ -1739,7 +1740,7 @@ void main() { my_ssbo.x = 1.0; }";
         options.set_hlsl_offsets(false);
         let result = c
             .compile_into_spirv_assembly(
-                GLSL_WEIRD_PACKING,
+                GLSL_EXPLICT_BINDING,
                 ShaderKind::Vertex,
                 "shader.glsl",
                 "main",
@@ -1757,7 +1758,7 @@ void main() { my_ssbo.x = 1.0; }";
         options.set_hlsl_offsets(true);
         let result = c
             .compile_into_spirv_assembly(
-                GLSL_WEIRD_PACKING,
+                GLSL_EXPLICT_BINDING,
                 ShaderKind::Vertex,
                 "shader.glsl",
                 "main",
