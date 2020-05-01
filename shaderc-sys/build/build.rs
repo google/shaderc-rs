@@ -25,6 +25,9 @@ static SHADERC_STATIC_LIB_FILE: &str = "libshaderc_combined.a";
 static SHADERC_STATIC_LIB_FILE_MSVC: &str = "shaderc_combined.lib";
 
 fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
+
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
@@ -33,6 +36,9 @@ fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
         .define("SPIRV_WERROR", "OFF")
         .define("SHADERC_SKIP_TESTS", "ON")
         .define("CMAKE_INSTALL_LIBDIR", "lib");
+    if target_os == "windows" && target_env == "gnu" {
+        config.define("_GLIBCXX_USE_CXX11_ABI", "0");
+    }
     if use_ninja {
         config.generator("Ninja");
     }
@@ -184,14 +190,8 @@ fn main() {
                             println!("cargo:warning=Found and linking system installed Glslang and SPIRV-Tools libraries.");
                             println!("cargo:rustc-link-lib={}=glslang", glslang);
                             println!("cargo:rustc-link-lib={}=SPIRV", spirv);
-                            println!(
-                                "cargo:rustc-link-lib={}=SPIRV-Tools",
-                                spirv_tools
-                            );
-                            println!(
-                                "cargo:rustc-link-lib={}=SPIRV-Tools-opt",
-                                spirv_tools_opt
-                            );
+                            println!("cargo:rustc-link-lib={}=SPIRV-Tools", spirv_tools);
+                            println!("cargo:rustc-link-lib={}=SPIRV-Tools-opt", spirv_tools_opt);
                         }
                         _ => {
                             println!(
