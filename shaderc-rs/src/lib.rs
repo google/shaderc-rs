@@ -169,6 +169,25 @@ pub enum TargetEnv {
     OpenGLCompat,
 }
 
+/// Target environment version.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EnvVersion {
+    // For Vulkan, use Vulkan's mapping of version numbers to integers.
+    // See vulkan.h
+    Vulkan1_0 = (1 << 22),
+    Vulkan1_1 = ((1 << 22) | (1 << 12)),
+    Vulkan1_2 = ((1 << 22) | (2 << 12)),
+    // For OpenGL, use the number from #version in shaders.
+    // TODO(dneto): Currently no difference between OpenGL 4.5 and 4.6.
+    // See glslang/Standalone/Standalone.cpp
+    // TODO(dneto): Glslang doesn't accept a OpenGL client version of 460.
+    OpenGL4_5 = 450,
+    // Currently WebGPU doesn't have versioning, since it isn't finalized. This
+    // will have to be updated once the spec is finished.
+    WebGPU,
+}
+
 /// The known versions of SPIR-V.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -691,7 +710,9 @@ impl<'a> CompileOptions<'a> {
     /// The default is Vulkan if not set.
     ///
     /// `version` will be used for distinguishing between different versions
-    /// of the target environment. "0" is the only supported value right now.
+    /// of the target environment.
+    /// Note that EnvVersion must be cast to u32 when calling set_target_env.
+    /// For example: `options.set_target_env(shaderc::TargetEnv::Vulkan, shaderc::EnvVersion::Vulkan1_1 as u32);`
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
         unsafe { scs::shaderc_compile_options_set_target_env(self.raw, env as i32, version) }
     }
