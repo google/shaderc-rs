@@ -169,6 +169,23 @@ pub enum TargetEnv {
     OpenGLCompat,
 }
 
+/// The known versions of SPIR-V.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpirvVersion {
+    // Use the values used for word 1 of a SPIR-V binary:
+    // - bits 24 to 31: zero
+    // - bits 16 to 23: major version number
+    // - bits 8 to 15: minor version number
+    // - bits 0 to 7: zero
+    V1_0 = 0x0001_0000,
+    V1_1 = 0x0001_0100,
+    V1_2 = 0x0001_0200,
+    V1_3 = 0x0001_0300,
+    V1_4 = 0x0001_0400,
+    V1_5 = 0x0001_0500,
+}
+
 /// Source language.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -677,6 +694,15 @@ impl<'a> CompileOptions<'a> {
     /// of the target environment. "0" is the only supported value right now.
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
         unsafe { scs::shaderc_compile_options_set_target_env(self.raw, env as i32, version) }
+    }
+
+    /// Sets the target SPIR-V version. The generated module will use this version
+    /// of SPIR-V. Each target environment determines what versions of SPIR-V
+    /// it can consume. Defaults to the highest version of SPIR-V 1.0 which is
+    /// required to be supported by the target environment.  E.g. Default to SPIR-V
+    /// 1.0 for Vulkan 1.0 and SPIR-V 1.3 for Vulkan 1.1.
+    pub fn set_target_spirv(&mut self, version: SpirvVersion) {
+        unsafe { scs::shaderc_compile_options_set_target_spirv(self.raw, version as i32) }
     }
 
     /// Sets the source language.
