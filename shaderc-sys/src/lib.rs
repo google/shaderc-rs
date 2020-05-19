@@ -153,6 +153,10 @@ extern "C" {
         env: i32,
         version: u32,
     );
+    pub fn shaderc_compile_options_set_target_spirv(
+        options: *mut ShadercCompileOptions,
+        version: i32,
+    );
     pub fn shaderc_compile_options_set_limit(
         options: *mut ShadercCompileOptions,
         limit: i32,
@@ -196,9 +200,7 @@ extern "C" {
     );
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
-    pub fn shaderc_result_get_compilation_status(
-        result: *const ShadercCompilationResult,
-    ) -> i32;
+    pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> i32;
     pub fn shaderc_result_get_num_errors(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_num_warnings(result: *const ShadercCompilationResult) -> size_t;
     pub fn shaderc_result_get_error_message(
