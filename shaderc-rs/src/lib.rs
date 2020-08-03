@@ -1004,6 +1004,30 @@ impl<'a> CompileOptions<'a> {
         }
     }
 
+    /// Sets whether the compiler should enable extension SPV_GOOGLE_hlsl_functionality1.
+    pub set_hlsl_functionality1(&mut self, enable: bool) {
+        unsafe {
+            scs::shaderc_compile_options_set_hlsl_functionality1(self.raw, enable);
+        }
+    }
+
+    /// Sets whether the compiler should invert position.Y output in vertex shader.
+    pub set_invert_y(&mut self, enable: bool) {
+        unsafe {
+            scs::shaderc_compile_options_set_invert_y(self.raw, enable);
+        }
+    }
+
+    /// Sets whether the compiler generates code for max and min builtins which,
+    /// if given a NaN operand, will return the other operand. Similarly, the clamp
+    /// builtin will favour the non-NaN operands, as if clamp were implemented
+    /// as a composition of max and min.
+    pub set_nan_clamp(&mut self, enable: bool) {
+        unsafe {
+            scs::shaderc_compile_options_set_nan_clamp(self.raw, enable);
+        }
+    }
+
     /// Adds a predefined macro to the compilation options.
     ///
     /// This has the same effect as passing `-Dname=value` to the command-line
