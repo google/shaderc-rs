@@ -198,6 +198,18 @@ extern "C" {
         set: *const c_char,
         binding: *const c_char,
     );
+    pub fn shaderc_compile_options_set_hlsl_functionality1(
+        options: *mut ShadercCompileOptions,
+        enable: bool
+    );
+    pub fn shaderc_compile_options_set_invert_y(
+        options: *mut ShadercCompileOptions,
+        enable: bool
+    );
+    pub fn shaderc_compile_options_set_nan_clamp(
+        options: *mut ShadercCompileOptions,
+        enable: bool
+    );
 
     pub fn shaderc_result_release(result: *mut ShadercCompilationResult);
     pub fn shaderc_result_get_compilation_status(result: *const ShadercCompilationResult) -> i32;
