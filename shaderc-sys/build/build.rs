@@ -110,7 +110,26 @@ fn main() {
             "cargo:warning=Checking for system installed libraries.  \
              Use --features = build-from-source to disable this behavior"
         );
-        search_dir = Some("/usr/lib/".to_owned());
+
+        // https://wiki.ubuntu.com/MultiarchSpec
+        // https://wiki.debian.org/Multiarch/Implementation
+        let debian_arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap() {
+            arch if arch == "x86" => "i386".to_owned(),
+            arch => arch,
+        };
+        let debian_triple_path = format!("/usr/lib/{}-linux-gnu/", debian_arch);
+
+        search_dir = if Path::new(&debian_triple_path).exists() {
+            // Debian, Ubuntu and their derivatives.
+            Some(debian_triple_path)
+        } else if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86_64"
+                && Path::new("/usr/lib64/").exists() {
+            // Other distributions running on x86_64 usually use this path.
+            Some("/usr/lib64/".to_owned())
+        } else {
+            // Other distributions, not x86_64.
+            Some("/usr/lib/".to_owned())
+        };
     }
 
     // Try to build with the static lib if a path was received or chosen
