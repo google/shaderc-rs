@@ -6,6 +6,7 @@ sudo: false
 os:
   - linux
   - osx
+  - osx_image: xcode12
 rust:
   - stable
   - nightly
@@ -19,10 +20,12 @@ branches:
 
 before_script:
   - git submodule update --init
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then rustup target add x86_64-apple-ios aarch64-apple-ios; fi
 
 script:
   - travis_wait cargo build --verbose
   - cargo test --verbose
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cargo build --target x86_64-apple-ios && cargo build --target aarch64-apple-ios; fi
 
 notifications:
   email:
