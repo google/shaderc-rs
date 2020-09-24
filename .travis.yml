@@ -6,6 +6,7 @@ sudo: false
 os:
   - linux
   - osx
+  - osx_image: xcode12
 rust:
   - stable
   - nightly
@@ -23,6 +24,7 @@ before_script:
 script:
   - travis_wait cargo build --verbose
   - cargo test --verbose
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./.travis-ios.sh; fi
 
 notifications:
   email:

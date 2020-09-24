@@ -24,7 +24,34 @@ static SHADERC_SHARED_LIB: &str = "shaderc_shared";
 static SHADERC_STATIC_LIB_FILE: &str = "libshaderc_combined.a";
 static SHADERC_STATIC_LIB_FILE_MSVC: &str = "shaderc_combined.lib";
 
-fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
+fn sdk_path() -> Option<PathBuf> {
+    let target = std::env::var("TARGET").unwrap();
+    use std::process::Command;
+
+    // tvOS (and the simulator) could be added here in the future.
+    let sdk = if target == "x86_64-apple-ios" || target == "i386-apple-ios" {
+        "iphonesimulator"
+    } else if target == "aarch64-apple-ios"
+        || target == "armv7-apple-ios"
+        || target == "armv7s-apple-ios"
+    {
+        "iphoneos"
+    } else {
+        return None;
+    };
+
+    let output = if let Ok(out) = Command::new("xcrun")
+        .args(&["--sdk", sdk, "--show-sdk-path"])
+        .output() {
+            out.stdout
+    } else {
+        return None;
+    };
+    let prefix_str = std::str::from_utf8(&output).expect("invalid output from `xcrun`");
+    Some(PathBuf::from(prefix_str.trim_end().to_string()))
+}
+
+fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
@@ -36,6 +63,13 @@ fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool) -> PathBuf {
     if use_ninja {
         config.generator("Ninja");
     }
+
+    if target_os == "ios" {
+        if let Some(path) = sdk_path() {
+            config.define("CMAKE_OSX_SYSROOT", path);
+        }
+    }
+
     config.build()
 }
 
@@ -244,6 +278,13 @@ fn main() {
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
+                ("ios", _) => {
+                    println!("cargo:warning=MacOS static builds experimental");
+                    println!("cargo:rustc-link-search=native={}", search_dir_str);
+                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib=dylib=c++");
+                    return;
+                }
                 (_, _) => {
                     println!("cargo:warning=Platform unsupported for linking against system installed shaderc libraries");
                 }
@@ -274,7 +315,7 @@ fn main() {
         build_shaderc_msvc(&shaderc_dir)
     } else {
         let has_ninja = finder.maybe_have("ninja").is_some();
-        build_shaderc(&shaderc_dir, has_ninja)
+        build_shaderc(&shaderc_dir, has_ninja, target_os)
     };
 
     lib_path.push("lib");
