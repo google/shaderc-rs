@@ -1,17 +1,17 @@
 language: rust
 
-dist: trusty
-sudo: false
+dist: bionic
+osx_image: xcode12
 
 os:
   - linux
   - osx
-  - osx_image: xcode12
+
 rust:
   - stable
   - nightly
 
-matrix:
+jobs:
   fast_finish: true
 
 branches:
@@ -24,11 +24,4 @@ before_script:
 script:
   - travis_wait cargo build --verbose
   - cargo test --verbose
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./.travis-ios.sh; fi
-
-notifications:
-  email:
-    recipients:
-      - antiagainst@gmail.com
-    on_success: change
-    on_failure: always
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./.travis-ios.sh; fi
