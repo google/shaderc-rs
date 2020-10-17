@@ -64,7 +64,7 @@ fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String) -> P
         config.generator("Ninja");
     }
 
-    if target_os == "ios" {
+    if target_os == "ios" || target_os == "android" {
         if let Some(path) = sdk_path() {
             config.define("CMAKE_OSX_SYSROOT", path);
         }
@@ -283,6 +283,12 @@ fn main() {
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
+                    return;
+                }
+                ("android", _) => {
+                    println!("cargo:warning=Android static builds experimental");
+                    println!("cargo:rustc-link-search=native={}", search_dir_str);
+                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     return;
                 }
                 (_, _) => {
