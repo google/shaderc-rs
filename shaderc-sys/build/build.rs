@@ -218,7 +218,9 @@ fn main() {
             } else if dylib_path.exists() {
                 Some((SHADERC_SHARED_LIB, "dylib"))
             } else {
-                None
+                // TODO: Make it check is there necessary libs
+                Some(("", "static"))
+                // None
             }
         } {
             match (target_os.as_str(), target_env.as_str()) {
@@ -288,7 +290,16 @@ fn main() {
                 ("android", _) => {
                     println!("cargo:warning=Android static builds experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib=dylib=c++_shared");
+                    println!("cargo:rustc-link-lib={}=glslang", kind);
+                    println!("cargo:rustc-link-lib={}=HLSL", kind);
+                    println!("cargo:rustc-link-lib={}=OGLCompiler", kind);
+                    println!("cargo:rustc-link-lib={}=OSDependent", kind);
+                    println!("cargo:rustc-link-lib={}=shaderc_util", kind);
+                    println!("cargo:rustc-link-lib={}=shaderc", kind);
+                    println!("cargo:rustc-link-lib={}=SPIRV-Tools-opt", kind);
+                    println!("cargo:rustc-link-lib={}=SPIRV-Tools", kind);
+                    println!("cargo:rustc-link-lib={}=SPIRV", kind);
                     return;
                 }
                 (_, _) => {
