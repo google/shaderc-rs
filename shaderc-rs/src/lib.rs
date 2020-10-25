@@ -1131,6 +1131,7 @@ impl CompilationArtifact {
 
         unsafe {
             let p = scs::shaderc_result_get_bytes(self.raw);
+            #[allow(clippy::cast_ptr_alignment)]
             slice::from_raw_parts(p as *const u32, num_words)
         }
     }
