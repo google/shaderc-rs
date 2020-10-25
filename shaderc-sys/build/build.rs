@@ -205,12 +205,11 @@ fn main() {
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
 
-        let static_lib_path =
-            search_dir.join(if target_os == "windows" && target_env == "msvc" {
-                SHADERC_STATIC_LIB_FILE_WIN
-            } else {
-                SHADERC_STATIC_LIB_FILE_UNIX
-            });
+        let static_lib_path = search_dir.join(if target_os == "windows" && target_env == "msvc" {
+            SHADERC_STATIC_LIB_FILE_WIN
+        } else {
+            SHADERC_STATIC_LIB_FILE_UNIX
+        });
 
         let dylib_name = format!(
             "{}{}{}",
