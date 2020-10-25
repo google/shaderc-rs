@@ -3,17 +3,6 @@ language: rust
 dist: bionic
 osx_image: xcode12
 
-os:
-  - linux
-  - osx
-
-rust:
-  - stable
-  - nightly
-
-jobs:
-  fast_finish: true
-
 branches:
   only:
     - master
@@ -21,16 +10,39 @@ branches:
 before_script:
   - git submodule update --init
 
-script:
-  - travis_wait cargo build --verbose
-  - cargo test --verbose
-  - if [[ $(uname) == "Darwin" ]]; then
-      rustup target add x86_64-apple-ios aarch64-apple-ios;
-      travis_wait cargo build --target x86_64-apple-ios --verbose;
-      travis_wait cargo build --target aarch64-apple-ios --verbose;
-      export RUNTIME_ID=$(xcrun simctl list runtimes | grep iOS | cut -d ' ' -f 7 | tail -1);
-      export SIM_ID=$(xcrun simctl create My-iphone7 com.apple.CoreSimulator.SimDeviceType.iPhone-7 $RUNTIME_ID);
-      xcrun simctl boot $SIM_ID;
-      cargo install cargo-dinghy;
-      cargo dinghy test --target x86_64-apple-ios;
-    fi
+jobs:
+  fast_finish: true
+  include:
+    - os: linux
+      rust: stable
+      script:
+        - travis_wait cargo build --verbose
+        - cargo test --verbose
+    - os: linux
+      rust: nightly
+      script:
+        - travis_wait cargo build --verbose
+        - cargo test --verbose
+    - os: osx
+      rust: stable
+      env: APPLE_PLATFORM=macOS
+      script:
+        - travis_wait cargo build --verbose
+        - cargo test --verbose
+    - os: osx
+      rust: stable
+      env: APPLE_PLATFORM=iOS
+      script:
+        - rustup target add aarch64-apple-ios
+        - travis_wait cargo build --target aarch64-apple-ios --verbose
+    - os: osx
+      rust: stable
+      env: APPLE_PLATFORM=iOS-Simulator
+      script:
+        - rustup target add x86_64-apple-ios
+        - travis_wait cargo build --target x86_64-apple-ios --verbose
+        - export RUNTIME_ID=$(xcrun simctl list runtimes | grep iOS | cut -d ' ' -f 7 | tail -1)
+        - export SIM_ID=$(xcrun simctl create My-iphone7 com.apple.CoreSimulator.SimDeviceType.iPhone-7 $RUNTIME_ID)
+        - xcrun simctl boot $SIM_ID
+        - cargo install cargo-dinghy
+        - cargo dinghy test --target x86_64-apple-ios
