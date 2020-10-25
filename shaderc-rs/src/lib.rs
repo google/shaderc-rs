@@ -1273,7 +1273,7 @@ void main() {
     static VOID_MAIN_ASSEMBLY: &str = "\
 ; SPIR-V
 ; Version: 1.0
-; Generator: Google Shaderc over Glslang; 8
+; Generator: Google Shaderc over Glslang; 10
 ; Bound: 6
 ; Schema: 0
                OpCapability Shader
@@ -1948,7 +1948,7 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_get_spirv_version() {
         let (version, _) = get_spirv_version();
-        assert_eq!((1 << 16) + (4 << 8), version);
+        assert_eq!((1 << 16) + (5 << 8), version);
     }
 
     #[test]
