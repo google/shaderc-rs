@@ -1,18 +1,7 @@
 language: rust
 
-dist: trusty
-sudo: false
-
-os:
-  - linux
-  - osx
-  - osx_image: xcode12
-rust:
-  - stable
-  - nightly
-
-matrix:
-  fast_finish: true
+dist: bionic
+osx_image: xcode12
 
 branches:
   only:
@@ -21,14 +10,39 @@ branches:
 before_script:
   - git submodule update --init
 
-script:
-  - travis_wait cargo build --verbose
-  - cargo test --verbose
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./.travis-ios.sh; fi
-
-notifications:
-  email:
-    recipients:
-      - antiagainst@gmail.com
-    on_success: change
-    on_failure: always
+jobs:
+  fast_finish: true
+  include:
+    - os: linux
+      rust: stable
+      script:
+        - travis_wait cargo build --verbose
+        - cargo test --verbose
+    - os: linux
+      rust: nightly
+      script:
+        - travis_wait cargo build --verbose
+        - cargo test --verbose
+    - os: osx
+      rust: stable
+      env: APPLE_PLATFORM=macOS
+      script:
+        - travis_wait cargo build --verbose
+        - cargo test --verbose
+    - os: osx
+      rust: stable
+      env: APPLE_PLATFORM=iOS
+      script:
+        - rustup target add aarch64-apple-ios
+        - travis_wait cargo build --target aarch64-apple-ios --verbose
+    - os: osx
+      rust: stable
+      env: APPLE_PLATFORM=iOS-Simulator
+      script:
+        - rustup target add x86_64-apple-ios
+        - travis_wait cargo build --target x86_64-apple-ios --verbose
+        - export RUNTIME_ID=$(xcrun simctl list runtimes | grep iOS | cut -d ' ' -f 7 | tail -1)
+        - export SIM_ID=$(xcrun simctl create My-iphone7 com.apple.CoreSimulator.SimDeviceType.iPhone-7 $RUNTIME_ID)
+        - xcrun simctl boot $SIM_ID
+        - cargo install cargo-dinghy
+        - travis_wait cargo dinghy test --target x86_64-apple-ios
