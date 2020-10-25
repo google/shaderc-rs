@@ -44,4 +44,4 @@ jobs:
         - export SIM_ID=$(xcrun simctl create My-iphone7 com.apple.CoreSimulator.SimDeviceType.iPhone-7 $RUNTIME_ID)
         - xcrun simctl boot $SIM_ID
         - cargo install cargo-dinghy
-        - travis_wait cargo dinghy test --target x86_64-apple-ios
+        - travis_wait 30 cargo dinghy test --target x86_64-apple-ios
