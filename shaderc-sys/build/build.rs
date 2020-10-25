@@ -111,16 +111,6 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     config.build()
 }
 
-fn probe_linux_lib_kind(lib_name: &str, search_dir: &PathBuf) -> Option<&'static str> {
-    if search_dir.join(&format!("lib{}.so", lib_name)).exists() {
-        Some("dylib")
-    } else if search_dir.join(&format!("lib{}.a", lib_name)).exists() {
-        Some("static")
-    } else {
-        None
-    }
-}
-
 fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
@@ -231,32 +221,6 @@ fn main() {
             match (target_os.as_str(), target_env.as_str()) {
                 ("linux", _) => {
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-
-                    // Libraries from the SPIRV-Tools project
-                    let spirv_tools_lib = probe_linux_lib_kind("SPIRV-Tools", &search_dir);
-                    let spirv_tools_opt_lib = probe_linux_lib_kind("SPIRV-Tools-opt", &search_dir);
-                    // Libraries from the Glslang project
-                    let spirv_lib = probe_linux_lib_kind("SPIRV", &search_dir);
-                    let glslang_lib = probe_linux_lib_kind("glslang", &search_dir);
-
-                    match (spirv_tools_lib, spirv_tools_opt_lib, spirv_lib, glslang_lib) {
-                        (Some(spirv_tools), Some(spirv_tools_opt), Some(spirv), Some(glslang)) => {
-                            println!(
-                                "cargo:warning=shaderc: found and linking glslang and spirv-tools \
-                                 libraries installed on system"
-                            );
-                            println!("cargo:rustc-link-lib={}=glslang", glslang);
-                            println!("cargo:rustc-link-lib={}=SPIRV", spirv);
-                            println!("cargo:rustc-link-lib={}=SPIRV-Tools", spirv_tools);
-                            println!("cargo:rustc-link-lib={}=SPIRV-Tools-opt", spirv_tools_opt);
-                        }
-                        _ => {
-                            println!(
-                                "cargo:warning=shaderc: only found the shaderc library; \
-                                 assuming libraries it depends on are built into the shaderc library."
-                            );
-                        }
-                    }
                     println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
