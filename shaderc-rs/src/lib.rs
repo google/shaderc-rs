@@ -639,12 +639,16 @@ impl Drop for Compiler {
     }
 }
 
+/// Include callback status.
+pub type IncludeCallbackResult = result::Result<ResolvedInclude, String>;
+
+type BoxedIncludeCallback<'a> =
+    Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>;
+
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
     raw: *mut scs::ShadercCompileOptions,
-    f: Option<
-        Box<dyn Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>,
-    >,
+    include_callback_fn: Option<BoxedIncludeCallback<'a>>,
 }
 
 /// Identifies the type of include directive. `Relative` is for include directives of the form
@@ -687,7 +691,10 @@ impl<'a> CompileOptions<'a> {
         if p.is_null() {
             None
         } else {
-            Some(CompileOptions { raw: p, f: None })
+            Some(CompileOptions {
+                raw: p,
+                include_callback_fn: None,
+            })
         }
     }
 
@@ -700,7 +707,10 @@ impl<'a> CompileOptions<'a> {
         if p.is_null() {
             None
         } else {
-            Some(CompileOptions { raw: p, f: None })
+            Some(CompileOptions {
+                raw: p,
+                include_callback_fn: None,
+            })
         }
     }
 
@@ -767,17 +777,13 @@ impl<'a> CompileOptions<'a> {
     /// tried again with `Standard`, which is similar to include directive behaviour in C.
     pub fn set_include_callback<F>(&mut self, f: F)
     where
-        F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
+        F: Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a,
     {
         use std::mem;
 
         let f = Box::new(f);
         let f_ptr = &*f as *const F;
-        self.f = Some(
-            f as Box<
-                dyn Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
-            >,
-        );
+        self.include_callback_fn = Some(f as BoxedIncludeCallback<'a>);
         unsafe {
             scs::shaderc_compile_options_set_include_callbacks(
                 self.raw,
@@ -806,7 +812,7 @@ impl<'a> CompileOptions<'a> {
             include_depth: size_t,
         ) -> *mut scs::shaderc_include_result
         where
-            F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
+            F: Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a,
         {
             let result = panic::catch_unwind(move || {
                 let f = unsafe { &*(user_data as *const F) };
@@ -904,9 +910,7 @@ impl<'a> CompileOptions<'a> {
 
     /// Sets the resource `limit` to the given `value`.
     pub fn set_limit(&mut self, limit: Limit, value: i32) {
-        unsafe {
-            scs::shaderc_compile_options_set_limit(self.raw, limit as i32, value as c_int)
-        }
+        unsafe { scs::shaderc_compile_options_set_limit(self.raw, limit as i32, value as c_int) }
     }
 
     /// Sets whether the compiler should automatically assign bindings to uniforms
@@ -1115,6 +1119,11 @@ impl CompilationArtifact {
         unsafe { scs::shaderc_result_get_length(self.raw) }
     }
 
+    /// Returns true if the compilation output data has a length of 0.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the compilation output data as a binary slice.
     ///
     /// # Panics
@@ -1131,6 +1140,7 @@ impl CompilationArtifact {
 
         unsafe {
             let p = scs::shaderc_result_get_bytes(self.raw);
+            #[allow(clippy::cast_ptr_alignment)]
             slice::from_raw_parts(p as *const u32, num_words)
         }
     }
