@@ -21,10 +21,10 @@ use std::path::{Path, PathBuf};
 
 static SHADERC_STATIC_LIB: &str = "shaderc_combined";
 static SHADERC_SHARED_LIB: &str = "shaderc_shared";
-static SHADERC_STATIC_LIB_FILE: &str = "libshaderc_combined.a";
-static SHADERC_STATIC_LIB_FILE_MSVC: &str = "shaderc_combined.lib";
+static SHADERC_STATIC_LIB_FILE_UNIX: &str = "libshaderc_combined.a";
+static SHADERC_STATIC_LIB_FILE_WIN: &str = "shaderc_combined.lib";
 
-fn sdk_path() -> Option<PathBuf> {
+fn get_apple_sdk_path() -> Option<PathBuf> {
     let target = std::env::var("TARGET").unwrap();
     use std::process::Command;
 
@@ -52,21 +52,21 @@ fn sdk_path() -> Option<PathBuf> {
     Some(PathBuf::from(prefix_str.trim_end().to_string()))
 }
 
-fn build_shaderc(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String) -> PathBuf {
+fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
-        .define("SPIRV_SKIP_EXECUTABLES", "ON")
-        .define("SPIRV_WERROR", "OFF")
         .define("SHADERC_SKIP_TESTS", "ON")
-        .define("CMAKE_INSTALL_LIBDIR", "lib");
+        .define("SPIRV_SKIP_EXECUTABLES", "ON")
+        .define("SPIRV_WERROR", "OFF");
     if use_ninja {
         config.generator("Ninja");
     }
 
     if target_os == "ios" {
-        if let Some(path) = sdk_path() {
+        if let Some(path) = get_apple_sdk_path() {
             config.define("CMAKE_OSX_SYSROOT", path);
         }
     }
@@ -80,11 +80,11 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
+        .define("CMAKE_INSTALL_LIBDIR", "lib")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        .define("SHADERC_SKIP_TESTS", "ON")
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
-        .define("SHADERC_SKIP_TESTS", "ON")
-        .define("CMAKE_INSTALL_LIBDIR", "lib")
         .generator("Ninja");
 
     // cmake-rs tries to be clever on Windows by injecting several
@@ -125,9 +125,9 @@ fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
     let config_build_from_source = env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_ok();
-    let explicit_lib_dir_set = env::var("SHADERC_LIB_DIR").is_ok();
+    let has_explicit_set_search_dir = env::var("SHADERC_LIB_DIR").is_ok();
 
-    // Initialize explicit libshaderc search directory first
+    // Initialize explicit shaderc search directory first.
     let mut search_dir = if let Ok(lib_dir) = env::var("SHADERC_LIB_DIR") {
         println!(
             "cargo:warning=shaderc: searching native shaderc libraries in '{}'",
@@ -139,7 +139,8 @@ fn main() {
     };
 
     // If no explicit path is set and no explicit request is made to build from
-    // source, check known locations before falling back to from-source-build
+    // source, check known system locations before falling back to build from source.
+    // This set `search_dir` for later usage.
     if search_dir.is_none() && target_os == "linux" && !config_build_from_source {
         println!(
             "cargo:warning=shaderc: searching for native shaderc libraries on system;  \
@@ -168,7 +169,7 @@ fn main() {
         };
     }
 
-    // Try to build with the static lib if a path was received or chosen
+    // Canonicalize the sarch directory first.
     let search_dir = if let Some(search_dir) = search_dir {
         let path = Path::new(&search_dir);
         let cannonical = fs::canonicalize(&path);
@@ -185,7 +186,7 @@ fn main() {
                 &path
             );
         }
-        if (cannonical.is_err()) && explicit_lib_dir_set {
+        if (cannonical.is_err()) && has_explicit_set_search_dir {
             println!("cargo:warning=shaderc: {:?}", cannonical.err().unwrap());
             println!(
                 "cargo:warning=shaderc: failed to canonicalize the given search path '{:?}'",
@@ -199,15 +200,16 @@ fn main() {
         None
     };
 
+    // Try to build with the static or dynamic library if a path was explicit set
+    // or implicitly chosen.
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
 
-        let combined_lib_path =
-            search_dir.join(if target_os == "windows" && target_env == "msvc" {
-                SHADERC_STATIC_LIB_FILE_MSVC
-            } else {
-                SHADERC_STATIC_LIB_FILE
-            });
+        let static_lib_path = search_dir.join(if target_os == "windows" && target_env == "msvc" {
+            SHADERC_STATIC_LIB_FILE_WIN
+        } else {
+            SHADERC_STATIC_LIB_FILE_UNIX
+        });
 
         let dylib_name = format!(
             "{}{}{}",
@@ -217,8 +219,8 @@ fn main() {
         );
         let dylib_path = search_dir.join(dylib_name);
 
-        if let Some((lib_name, kind)) = {
-            if combined_lib_path.exists() {
+        if let Some((lib_name, lib_kind)) = {
+            if static_lib_path.exists() {
                 Some((SHADERC_STATIC_LIB, "static"))
             } else if dylib_path.exists() {
                 Some((SHADERC_SHARED_LIB, "dylib"))
@@ -255,34 +257,34 @@ fn main() {
                             );
                         }
                     }
-                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("windows", "msvc") => {
                     println!("cargo:warning=shaderc: Windows MSVC static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     return;
                 }
                 ("windows", "gnu") => {
                     println!("cargo:warning=shaderc: Windows MinGW static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("macos", _) => {
                     println!("cargo:warning=shaderc: macOS static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
                 ("ios", _) => {
                     println!("cargo:warning=shaderc: macOS static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-                    println!("cargo:rustc-link-lib={}={}", kind, lib_name);
+                    println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
@@ -319,12 +321,12 @@ fn main() {
         build_shaderc_msvc(&shaderc_dir)
     } else {
         let has_ninja = finder.maybe_have("ninja").is_some();
-        build_shaderc(&shaderc_dir, has_ninja, target_os)
+        build_shaderc_unix(&shaderc_dir, has_ninja, target_os)
     };
 
     lib_path.push("lib");
     println!("cargo:rustc-link-search=native={}", lib_path.display());
-    println!("cargo:rustc-link-lib=static=shaderc_combined");
+    println!("cargo:rustc-link-lib=static={}", SHADERC_STATIC_LIB);
 
     emit_std_cpp_link();
 }
