@@ -1115,6 +1115,11 @@ impl CompilationArtifact {
         unsafe { scs::shaderc_result_get_length(self.raw) }
     }
 
+    /// Returns true if the compilation output data has a length of 0.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the compilation output data as a binary slice.
     ///
     /// # Panics
