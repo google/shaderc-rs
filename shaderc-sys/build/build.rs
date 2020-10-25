@@ -130,7 +130,7 @@ fn main() {
     // Initialize explicit libshaderc search directory first
     let mut search_dir = if let Ok(lib_dir) = env::var("SHADERC_LIB_DIR") {
         println!(
-            "cargo:warning=Specified {} to search for shaderc libraries",
+            "cargo:warning=shaderc: searching native shaderc libraries in '{}'",
             lib_dir
         );
         Some(lib_dir)
@@ -142,8 +142,8 @@ fn main() {
     // source, check known locations before falling back to from-source-build
     if search_dir.is_none() && target_os == "linux" && !config_build_from_source {
         println!(
-            "cargo:warning=Checking for system installed libraries.  \
-             Use --features = build-from-source to disable this behavior"
+            "cargo:warning=shaderc: searching for native shaderc libraries on system;  \
+             use '--features build-from-source' to force building from source code"
         );
 
         // https://wiki.ubuntu.com/MultiarchSpec
@@ -174,18 +174,21 @@ fn main() {
         let cannonical = fs::canonicalize(&path);
         if path.is_relative() {
             println!(
-                "cargo:warning=Provided path {:?} is relative.  Path must be \
-                 relative to shaderc-sys crate, possibly not your current \
-                 working directory",
+                "cargo:warning=shaderc: the given search path '{:?}' is relative; \
+                 path must be relative to shaderc-sys crate, \
+                 likely not your current working directory",
                 &path
             );
         } else if !path.is_dir() {
-            println!("cargo:warning=Provided path {:?} is not a directory", &path);
+            println!(
+                "cargo:warning=shaderc: the given search path '{:?}' is not a directory",
+                &path
+            );
         }
         if (cannonical.is_err()) && explicit_lib_dir_set {
-            println!("cargo:warning={:?}", cannonical.err().unwrap());
+            println!("cargo:warning=shaderc: {:?}", cannonical.err().unwrap());
             println!(
-                "cargo:warning=Provided path {:?} could not be canonicallized",
+                "cargo:warning=shaderc: failed to canonicalize the given search path '{:?}'",
                 &path
             );
             None
@@ -236,7 +239,10 @@ fn main() {
 
                     match (spirv_tools_lib, spirv_tools_opt_lib, spirv_lib, glslang_lib) {
                         (Some(spirv_tools), Some(spirv_tools_opt), Some(spirv), Some(glslang)) => {
-                            println!("cargo:warning=Found and linking system installed Glslang and SPIRV-Tools libraries.");
+                            println!(
+                                "cargo:warning=shaderc: found and linking glslang and spirv-tools \
+                                 libraries installed on system"
+                            );
                             println!("cargo:rustc-link-lib={}=glslang", glslang);
                             println!("cargo:rustc-link-lib={}=SPIRV", spirv);
                             println!("cargo:rustc-link-lib={}=SPIRV-Tools", spirv_tools);
@@ -244,9 +250,8 @@ fn main() {
                         }
                         _ => {
                             println!(
-                                "cargo:warning=Only shaderc library found.  \
-                                 Assuming libraries it depends on are built into \
-                                 the shaderc library."
+                                "cargo:warning=shaderc: only found the shaderc library; \
+                                 assuming libraries it depends on are built into the shaderc library."
                             );
                         }
                     }
@@ -255,45 +260,48 @@ fn main() {
                     return;
                 }
                 ("windows", "msvc") => {
-                    println!("cargo:warning=Windows MSVC static builds experimental");
+                    println!("cargo:warning=shaderc: Windows MSVC static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     return;
                 }
                 ("windows", "gnu") => {
-                    println!("cargo:warning=Windows MinGW static builds experimental");
+                    println!("cargo:warning=shaderc: Windows MinGW static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("macos", _) => {
-                    println!("cargo:warning=MacOS static builds experimental");
+                    println!("cargo:warning=shaderc: macOS static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
                 ("ios", _) => {
-                    println!("cargo:warning=MacOS static builds experimental");
+                    println!("cargo:warning=shaderc: macOS static build is experimental");
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
                     println!("cargo:rustc-link-lib={}={}", kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
                 (_, _) => {
-                    println!("cargo:warning=Platform unsupported for linking against system installed shaderc libraries");
+                    println!(
+                        "cargo:warning=shaderc: unsupported platform for linking against \
+                         native shaderc libraries installed on system"
+                    );
                 }
             }
         }
     }
 
     if config_build_from_source {
-        println!("cargo:warning=Requested to build from source");
+        println!("cargo:warning=shaderc: requested to build from source");
     } else {
         println!(
-            "cargo:warning=System installed library not found.  Falling back \
-             to build from source"
+            "cargo:warning=shaderc: cannot find native shaderc library on system; \
+             falling back to build from source"
         );
     }
 
