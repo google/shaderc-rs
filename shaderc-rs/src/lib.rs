@@ -642,11 +642,13 @@ impl Drop for Compiler {
 /// Include callback status.
 pub type IncludeCallbackResult = result::Result<ResolvedInclude, String>;
 
+type BoxedIncludeCallback<'a> =
+    Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>;
+
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
     raw: *mut scs::ShadercCompileOptions,
-    include_callback_fn:
-        Option<Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>>,
+    include_callback_fn: Option<BoxedIncludeCallback<'a>>,
 }
 
 /// Identifies the type of include directive. `Relative` is for include directives of the form
@@ -781,8 +783,7 @@ impl<'a> CompileOptions<'a> {
 
         let f = Box::new(f);
         let f_ptr = &*f as *const F;
-        self.include_callback_fn =
-            Some(f as Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>);
+        self.include_callback_fn = Some(f as BoxedIncludeCallback<'a>);
         unsafe {
             scs::shaderc_compile_options_set_include_callbacks(
                 self.raw,
