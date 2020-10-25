@@ -645,7 +645,8 @@ pub type IncludeCallbackResult = result::Result<ResolvedInclude, String>;
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
     raw: *mut scs::ShadercCompileOptions,
-    f: Option<Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>>,
+    include_callback_fn:
+        Option<Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>>,
 }
 
 /// Identifies the type of include directive. `Relative` is for include directives of the form
@@ -688,7 +689,10 @@ impl<'a> CompileOptions<'a> {
         if p.is_null() {
             None
         } else {
-            Some(CompileOptions { raw: p, f: None })
+            Some(CompileOptions {
+                raw: p,
+                include_callback_fn: None,
+            })
         }
     }
 
@@ -701,7 +705,10 @@ impl<'a> CompileOptions<'a> {
         if p.is_null() {
             None
         } else {
-            Some(CompileOptions { raw: p, f: None })
+            Some(CompileOptions {
+                raw: p,
+                include_callback_fn: None,
+            })
         }
     }
 
@@ -774,7 +781,7 @@ impl<'a> CompileOptions<'a> {
 
         let f = Box::new(f);
         let f_ptr = &*f as *const F;
-        self.f =
+        self.include_callback_fn =
             Some(f as Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>);
         unsafe {
             scs::shaderc_compile_options_set_include_callbacks(
