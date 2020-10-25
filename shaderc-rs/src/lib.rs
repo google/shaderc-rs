@@ -639,12 +639,13 @@ impl Drop for Compiler {
     }
 }
 
+/// Include callback status.
+pub type IncludeCallbackResult = result::Result<ResolvedInclude, String>;
+
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
     raw: *mut scs::ShadercCompileOptions,
-    f: Option<
-        Box<dyn Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a>,
-    >,
+    f: Option<Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>>,
 }
 
 /// Identifies the type of include directive. `Relative` is for include directives of the form
@@ -767,17 +768,14 @@ impl<'a> CompileOptions<'a> {
     /// tried again with `Standard`, which is similar to include directive behaviour in C.
     pub fn set_include_callback<F>(&mut self, f: F)
     where
-        F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
+        F: Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a,
     {
         use std::mem;
 
         let f = Box::new(f);
         let f_ptr = &*f as *const F;
-        self.f = Some(
-            f as Box<
-                dyn Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
-            >,
-        );
+        self.f =
+            Some(f as Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>);
         unsafe {
             scs::shaderc_compile_options_set_include_callbacks(
                 self.raw,
@@ -806,7 +804,7 @@ impl<'a> CompileOptions<'a> {
             include_depth: size_t,
         ) -> *mut scs::shaderc_include_result
         where
-            F: Fn(&str, IncludeType, &str, usize) -> result::Result<ResolvedInclude, String> + 'a,
+            F: Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a,
         {
             let result = panic::catch_unwind(move || {
                 let f = unsafe { &*(user_data as *const F) };
