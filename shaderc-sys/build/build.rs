@@ -42,8 +42,9 @@ fn sdk_path() -> Option<PathBuf> {
 
     let output = if let Ok(out) = Command::new("xcrun")
         .args(&["--sdk", sdk, "--show-sdk-path"])
-        .output() {
-            out.stdout
+        .output()
+    {
+        out.stdout
     } else {
         return None;
     };
@@ -157,7 +158,8 @@ fn main() {
             // Debian, Ubuntu and their derivatives.
             Some(debian_triple_path)
         } else if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86_64"
-                && Path::new("/usr/lib64/").exists() {
+            && Path::new("/usr/lib64/").exists()
+        {
             // Other distributions running on x86_64 usually use this path.
             Some("/usr/lib64/".to_owned())
         } else {
@@ -237,14 +239,8 @@ fn main() {
                             println!("cargo:warning=Found and linking system installed Glslang and SPIRV-Tools libraries.");
                             println!("cargo:rustc-link-lib={}=glslang", glslang);
                             println!("cargo:rustc-link-lib={}=SPIRV", spirv);
-                            println!(
-                                "cargo:rustc-link-lib={}=SPIRV-Tools",
-                                spirv_tools
-                            );
-                            println!(
-                                "cargo:rustc-link-lib={}=SPIRV-Tools-opt",
-                                spirv_tools_opt
-                            );
+                            println!("cargo:rustc-link-lib={}=SPIRV-Tools", spirv_tools);
+                            println!("cargo:rustc-link-lib={}=SPIRV-Tools-opt", spirv_tools_opt);
                         }
                         _ => {
                             println!(

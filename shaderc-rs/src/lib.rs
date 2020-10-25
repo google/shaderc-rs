@@ -902,9 +902,7 @@ impl<'a> CompileOptions<'a> {
 
     /// Sets the resource `limit` to the given `value`.
     pub fn set_limit(&mut self, limit: Limit, value: i32) {
-        unsafe {
-            scs::shaderc_compile_options_set_limit(self.raw, limit as i32, value as c_int)
-        }
+        unsafe { scs::shaderc_compile_options_set_limit(self.raw, limit as i32, value as c_int) }
     }
 
     /// Sets whether the compiler should automatically assign bindings to uniforms
