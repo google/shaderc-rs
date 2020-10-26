@@ -56,9 +56,15 @@ fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String)
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
+        // CMake options
         .define("CMAKE_INSTALL_LIBDIR", "lib")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        // Glslang options
+        .define("ENABLE_SPVREMAPPER", "OFF")
+        .define("ENABLE_GLSLANG_BINARIES", "OFF")
+        // Shaderc options
         .define("SHADERC_SKIP_TESTS", "ON")
+        // SPIRV-Tools options
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF");
     if use_ninja {
@@ -80,9 +86,15 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
+        // CMake options
         .define("CMAKE_INSTALL_LIBDIR", "lib")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        // Glslang options
+        .define("ENABLE_SPVREMAPPER", "OFF")
+        .define("ENABLE_GLSLANG_BINARIES", "OFF")
+        // Shaderc options
         .define("SHADERC_SKIP_TESTS", "ON")
+        // SPIRV-Tools options
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
         .generator("Ninja");
