@@ -56,9 +56,15 @@ fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String)
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
+        // CMake options
         .define("CMAKE_INSTALL_LIBDIR", "lib")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        // Glslang options
+        .define("ENABLE_SPVREMAPPER", "OFF")
+        .define("ENABLE_GLSLANG_BINARIES", "OFF")
+        // Shaderc options
         .define("SHADERC_SKIP_TESTS", "ON")
+        // SPIRV-Tools options
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF");
     if use_ninja {
@@ -80,9 +86,15 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
+        // CMake options
         .define("CMAKE_INSTALL_LIBDIR", "lib")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        // Glslang options
+        .define("ENABLE_SPVREMAPPER", "OFF")
+        .define("ENABLE_GLSLANG_BINARIES", "OFF")
+        // Shaderc options
         .define("SHADERC_SKIP_TESTS", "ON")
+        // SPIRV-Tools options
         .define("SPIRV_SKIP_EXECUTABLES", "ON")
         .define("SPIRV_WERROR", "OFF")
         .generator("Ninja");
@@ -109,16 +121,6 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     };
 
     config.build()
-}
-
-fn probe_linux_lib_kind(lib_name: &str, search_dir: &PathBuf) -> Option<&'static str> {
-    if search_dir.join(&format!("lib{}.so", lib_name)).exists() {
-        Some("dylib")
-    } else if search_dir.join(&format!("lib{}.a", lib_name)).exists() {
-        Some("static")
-    } else {
-        None
-    }
 }
 
 fn main() {
@@ -231,32 +233,6 @@ fn main() {
             match (target_os.as_str(), target_env.as_str()) {
                 ("linux", _) => {
                     println!("cargo:rustc-link-search=native={}", search_dir_str);
-
-                    // Libraries from the SPIRV-Tools project
-                    let spirv_tools_lib = probe_linux_lib_kind("SPIRV-Tools", &search_dir);
-                    let spirv_tools_opt_lib = probe_linux_lib_kind("SPIRV-Tools-opt", &search_dir);
-                    // Libraries from the Glslang project
-                    let spirv_lib = probe_linux_lib_kind("SPIRV", &search_dir);
-                    let glslang_lib = probe_linux_lib_kind("glslang", &search_dir);
-
-                    match (spirv_tools_lib, spirv_tools_opt_lib, spirv_lib, glslang_lib) {
-                        (Some(spirv_tools), Some(spirv_tools_opt), Some(spirv), Some(glslang)) => {
-                            println!(
-                                "cargo:warning=shaderc: found and linking glslang and spirv-tools \
-                                 libraries installed on system"
-                            );
-                            println!("cargo:rustc-link-lib={}=glslang", glslang);
-                            println!("cargo:rustc-link-lib={}=SPIRV", spirv);
-                            println!("cargo:rustc-link-lib={}=SPIRV-Tools", spirv_tools);
-                            println!("cargo:rustc-link-lib={}=SPIRV-Tools-opt", spirv_tools_opt);
-                        }
-                        _ => {
-                            println!(
-                                "cargo:warning=shaderc: only found the shaderc library; \
-                                 assuming libraries it depends on are built into the shaderc library."
-                            );
-                        }
-                    }
                     println!("cargo:rustc-link-lib={}={}", lib_kind, lib_name);
                     println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
