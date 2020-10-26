@@ -202,7 +202,7 @@ fn main() {
         None
     };
 
-    // Try to build with the static or dynamic library if a path was explicit set
+    // Try to build with the dynamic or static library if a path was explicit set
     // or implicitly chosen.
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
@@ -222,10 +222,10 @@ fn main() {
         let dylib_path = search_dir.join(dylib_name);
 
         if let Some((lib_name, lib_kind)) = {
-            if static_lib_path.exists() {
-                Some((SHADERC_STATIC_LIB, "static"))
-            } else if dylib_path.exists() {
+            if dylib_path.exists() {
                 Some((SHADERC_SHARED_LIB, "dylib"))
+            } else if static_lib_path.exists() {
+                Some((SHADERC_STATIC_LIB, "static"))
             } else {
                 None
             }
