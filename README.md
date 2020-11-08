@@ -86,12 +86,14 @@ attempts to obtain native shaderc can be controlled by several options, which
 are passed through to shaderc-sys when building shaderc-rs:
 
 1. Building from source, if option `--features build-from-source` is specified.
-2. If the `SHADERC_LIB_DIR` environment variable is set to
+1. If the `SHADERC_LIB_DIR` environment variable is set to
    `/path/to/shaderc/libs/`, that path will be searched for native dynamic or
    static shaderc library.
-3. On Linux, system library paths like `/usr/lib/` will additionally be searched
+1. If the `VULKAN_SDK` environment variable is set, then `$VULKAN_SDK/lib` will
+   be searched for native dynamicd or static shaderc library.
+1. On Linux, system library paths like `/usr/lib/` will additionally be searched
    for native dynamic or shaderc library, if the `SHADERC_LIB_DIR` is not set.
-4. Building from source, if the native shaderc library is not found via the
+1. Building from source, if the native shaderc library is not found via the
    above steps.
 
 For each library directory, the build script will try to fine and link to the

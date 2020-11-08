@@ -140,6 +140,19 @@ fn main() {
         None
     };
 
+    // Try to find native shaderc library from Vulkan SDK if possible.
+    if search_dir.is_none() {
+        search_dir = if let Ok(sdk_dir) = env::var("VULKAN_SDK") {
+            println!(
+                "cargo:warning=shaderc: searching native shaderc libraries in Vulkan SDK '{}/lib'",
+                sdk_dir
+            );
+            Some(format!("{}/lib/", sdk_dir))
+        } else {
+            None
+        };
+    }
+
     // If no explicit path is set and no explicit request is made to build from
     // source, check known system locations before falling back to build from source.
     // This set `search_dir` for later usage.
