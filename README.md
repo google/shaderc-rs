@@ -73,54 +73,42 @@ assert!(text_result.as_text().starts_with("; SPIR-V\n"));
 
 Setup
 -----
-shaderc-rs needs [shaderc library](https://github.com/google/shaderc) be installed.
 
-shaderc library can be obtained from [here](https://github.com/google/shaderc#downloads)
-and linked, or can be [built from source](#building-from-source):
+shaderc-rs needs the C++ [shaderc library](https://github.com/google/shaderc).
+It's shipped inside the [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/).
+You may be able to install it directly on some Linux distro's using the package
+manager. The C++ shaderc project provides [artifacts
+downloads](https://github.com/google/shaderc#downloads). You can also
+[build it from source](#building-from-source).
 
-### Linking with pre-built static library
-- On Linux, If the `SHADERC_LIB_DIR` environment variable is set to
-    `/path/to/shaderc/libs/`, it will take precedence and `libshaderc_combined.a`
-    (and the glsang and SPIRV libraries) will be searched in the
-    `/path/to/shaderc/libs/` directory. 
-- Otherwise, on Linux, `/usr/lib/` will be automatically searched for `libshaderc_combined.a`
-    if `SHADERC_LIB_DIR` is not set.
-- On Windows MSVC, If the `SHADERC_LIB_DIR` environment variable is set to
-    `/path/to/shaderc/libs/`, `shaderc_combined.lib` will be searched in the
-    `/path/to/shaderc/libs/` directory.
-### Linking with pre-built dynamic library
-- On Linux, `libshaderc_shared.so` will be searched in the `SHADERC_LIB_DIR`
-    environment variable or in the `/usr/lib/`.
-- Otherwise, on Linux, `/usr/lib/` will be automatically searched for `libshaderc_shared.so`
-    if `SHADERC_LIB_DIR` is not set.
-- On Windows (MSVC and gnu), If the `SHADERC_LIB_DIR` environment variable is set to
-    `/path/to/shaderc/bin/`, `shaderc_shared.dll` will be searched in the 
-    `/path/to/shaderc/bin/` directory.
+The order of preference in which the [build script](shaderc-sys/build/build.rs)
+attempts to obtain native shaderc can be controlled by several options, which
+are passed through to shaderc-sys when building shaderc-rs:
 
-The order of preference in which the build script will attempt to obtain
-shaderc can be controlled by several options, which are passed through to
-shaderc-sys when building shaderc-rs:
+1. Building from source, if option `--features build-from-source` is specified.
+2. If the `SHADERC_LIB_DIR` environment variable is set to
+   `/path/to/shaderc/libs/`, that path will be searched for native dynamic or
+   static shaderc library.
+3. On Linux, system library paths like `/usr/lib/` will additionally be searched
+   for native dynamic or shaderc library, if the `SHADERC_LIB_DIR` is not set.
+4. Building from source, if the native shaderc library is not found via the
+   above steps.
 
-1. Building from source, if option `--features build-from-source` is used.
-2. If the SHADERC_LIB_DIR environment variable is set to `/path/to/shaderc/libs/`,
-   `/path/to/shaderc/libs/` will be searched for static or dynamic libs.
-3. On Linux, `/usr/lib/` will be searched for static and dynamic libs
-   if the `SHADERC_LIB_DIR` is not set.
-4. Building from source, if library detection failed.
+For each library directory, the build script will try to fine and link to the
+dynamic native shaderc library `shaderc_shared` first and the static native
+shaderc library `shaderc_combined` next.
 
 Building from Source
 --------------------
 
 The shaderc-sys [`build.rs`](shaderc-sys/build/build.rs) will automatically
 check out and compile a copy of native C++ shaderc and link to the generated
-artifacts, which requires `git`, `cmake`, and `python` existing in the `PATH`.
+artifacts, which requires `git`, `cmake`, and `python` existing in the `PATH`:
 
-To build your own libshaderc for the shaderc-sys crate, the following tools
-must be installed and available on `PATH`:
 - [CMake](https://cmake.org/)
 - [Git](https://git-scm.com/)
-- [Python](https://www.python.org/) (only works with both Python 3.x, on
-  windows the executable must be named `python.exe`)
+- [Python](https://www.python.org/) (only works with Python 3, on Windows
+  the executable must be named `python.exe`)
 - a C++11 compiler
 
 Additionally:
@@ -167,18 +155,17 @@ Use your package manager to install the required dev-tools
 
 For example on ubuntu:
 ```
-sudo apt-get install build-essential git python3 cmake
+sudo apt-get install build-essential cmake git ninja python3
 ```
 
-On Arch linux, the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/)
-will include glslang and SPIRV libs in a detectable location.
+On Arch linux, you can directly install the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/).
 
 ### macOS Example Setup
 
 Assuming Homebrew:
 
 ```
-brew install cmake
+brew install git cmake git ninja python@3.8
 ```
 
 Contributions
