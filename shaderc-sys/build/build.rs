@@ -156,32 +156,40 @@ fn main() {
     // If no explicit path is set and no explicit request is made to build from
     // source, check known system locations before falling back to build from source.
     // This set `search_dir` for later usage.
-    if search_dir.is_none() && target_os == "linux" && !config_build_from_source {
+    if search_dir.is_none() && !config_build_from_source {
         println!(
             "cargo:warning=shaderc: searching for native shaderc libraries on system;  \
              use '--features build-from-source' to force building from source code"
         );
 
-        // https://wiki.ubuntu.com/MultiarchSpec
-        // https://wiki.debian.org/Multiarch/Implementation
-        let debian_arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap() {
-            arch if arch == "x86" => "i386".to_owned(),
-            arch => arch,
-        };
-        let debian_triple_path = format!("/usr/lib/{}-linux-gnu/", debian_arch);
+        if target_os == "macos" {
+            // Vulkan SDK is installed in `/usr/local/` by default on macOS
+            let macos_path = "/usr/local/lib/";
+            if Path::new(macos_path).exists() {
+                search_dir = Some(macos_path.to_owned());
+            }
+        } else if target_os == "linux" {
+            // https://wiki.ubuntu.com/MultiarchSpec
+            // https://wiki.debian.org/Multiarch/Implementation
+            let debian_arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap() {
+                arch if arch == "x86" => "i386".to_owned(),
+                arch => arch,
+            };
+            let debian_triple_path = format!("/usr/lib/{}-linux-gnu/", debian_arch);
 
-        search_dir = if Path::new(&debian_triple_path).exists() {
-            // Debian, Ubuntu and their derivatives.
-            Some(debian_triple_path)
-        } else if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86_64"
-            && Path::new("/usr/lib64/").exists()
-        {
-            // Other distributions running on x86_64 usually use this path.
-            Some("/usr/lib64/".to_owned())
-        } else {
-            // Other distributions, not x86_64.
-            Some("/usr/lib/".to_owned())
-        };
+            search_dir = if Path::new(&debian_triple_path).exists() {
+                // Debian, Ubuntu and their derivatives.
+                Some(debian_triple_path)
+            } else if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86_64"
+                && Path::new("/usr/lib64/").exists()
+            {
+                // Other distributions running on x86_64 usually use this path.
+                Some("/usr/lib64/".to_owned())
+            } else {
+                // Other distributions, not x86_64.
+                Some("/usr/lib/".to_owned())
+            };
+        }
     }
 
     // Canonicalize the sarch directory first.
