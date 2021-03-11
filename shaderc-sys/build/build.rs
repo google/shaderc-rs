@@ -308,7 +308,9 @@ fn main() {
 
     finder.must_have("cmake");
     finder.must_have("git");
-    finder.must_have("python");
+    finder.maybe_have("python").or(finder.maybe_have("python3")).unwrap_or_else(|| {
+        panic!("Build requires one of `python` or `python3`");
+    });
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let shaderc_dir = Path::new(&manifest_dir).join("build");
