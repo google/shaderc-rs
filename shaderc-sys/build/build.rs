@@ -309,10 +309,10 @@ fn main() {
     finder.must_have("cmake");
     finder.must_have("git");
     finder
-        .maybe_have("python")
-        .or(finder.maybe_have("python3"))
+        .maybe_have("python3")
+        .or(finder.maybe_have("python"))
         .unwrap_or_else(|| {
-            panic!("Build requires one of `python` or `python3`");
+            panic!("Build requires one of `python3` or `python`");
         });
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
