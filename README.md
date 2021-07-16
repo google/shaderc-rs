@@ -167,7 +167,7 @@ On Arch linux, you can directly install the [shaderc package](https://www.archli
 Assuming Homebrew:
 
 ```
-brew install git cmake git ninja python@3.8
+brew install git cmake ninja python@3.8
 ```
 
 Contributions
