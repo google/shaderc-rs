@@ -985,6 +985,13 @@ impl<'a> CompileOptions<'a> {
         }
     }
 
+    /// Automatically assigns locations to shader inputs and outputs.
+    pub fn set_auto_map_locations(&mut self, auto_map: bool) {
+        unsafe {
+            scs::shaderc_compile_options_set_auto_map_locations(self.raw, auto_map);
+        }
+    }
+
     /// Like `set_hlsl_register_set_and_binding`, but only takes effect when compiling
     /// the given shader stage.
     pub fn set_hlsl_register_set_and_binding_for_stage(

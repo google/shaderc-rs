@@ -191,6 +191,10 @@ extern "C" {
         set: *const c_char,
         binding: *const c_char,
     );
+    pub fn shaderc_compile_options_set_auto_map_locations(
+        options: *mut ShadercCompileOptions,
+        auto_map: bool,
+    );
     pub fn shaderc_compile_options_set_hlsl_register_set_and_binding_for_stage(
         options: *mut ShadercCompileOptions,
         shader_kind: c_int,
