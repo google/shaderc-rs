@@ -29,7 +29,10 @@ fn get_apple_sdk_path() -> Option<PathBuf> {
     use std::process::Command;
 
     // tvOS (and the simulator) could be added here in the future.
-    let sdk = if target == "x86_64-apple-ios" || target == "i386-apple-ios" {
+    let sdk = if target == "x86_64-apple-ios"
+        || target == "i386-apple-ios"
+        || target == "aarch64-apple-ios-sim"
+    {
         "iphonesimulator"
     } else if target == "aarch64-apple-ios"
         || target == "armv7-apple-ios"
