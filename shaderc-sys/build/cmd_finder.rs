@@ -32,7 +32,12 @@ impl CommandFinder {
                     let target = path.join(&cmd);
                     let mut cmd_alt = cmd.clone();
                     cmd_alt.push(".exe");
+                    let mut symlink_is_file = false;
+                    if let Ok(metadata) = target.with_extension("exe").symlink_metadata() {
+                        symlink_is_file = metadata.is_file()
+                    }
                     if target.is_file() || // some/path/git
+                symlink_is_file ||
                 target.with_extension("exe").exists() || // some/path/git.exe
                 target.join(&cmd_alt).exists()
                     {
