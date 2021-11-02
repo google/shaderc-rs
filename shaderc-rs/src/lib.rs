@@ -921,6 +921,14 @@ impl<'a> CompileOptions<'a> {
         }
     }
 
+    /// Sets whether the compiler should automatically remove sampler variables
+    /// and convert image variables to combined image-sampler variables.
+    pub fn set_auto_combined_image_sampler(&mut self, auto_combine: bool) {
+        unsafe {
+            scs::shaderc_compile_options_set_auto_combined_image_sampler(self.raw, auto_combine);
+        }
+    }
+
     /// Sets whether the compiler should use HLSL IO mapping rules for bindings.
     ///
     /// Defaults to false.

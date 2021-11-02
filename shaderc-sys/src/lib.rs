@@ -166,6 +166,10 @@ extern "C" {
         options: *mut ShadercCompileOptions,
         auto_bind: bool,
     );
+    pub fn shaderc_compile_options_set_auto_combined_image_sampler(
+        options: *mut ShadercCompileOptions,
+        auto_combine: bool,
+    );
     pub fn shaderc_compile_options_set_hlsl_io_mapping(
         options: *mut ShadercCompileOptions,
         hlsl_iomap: bool,
