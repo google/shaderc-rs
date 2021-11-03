@@ -403,6 +403,7 @@ pub enum Limit {
 ///
 /// Creating an `Compiler` object has substantial resource costs; so it is
 /// recommended to keep one object around for all tasks.
+#[derive(Debug)]
 pub struct Compiler {
     raw: *mut scs::ShadercCompiler,
 }
