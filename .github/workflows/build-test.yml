@@ -116,3 +116,106 @@ jobs:
         with:
           command: build
           args: --target aarch64-apple-ios --verbose
+
+  test-windows-msvc-stable:
+    name: Stable on Windows (MSVC)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: x86_64-pc-windows-msvc
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target x86_64-pc-windows-msvc --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
+
+  test-windows-msvc-static-stable:
+    name: Stable on Windows (MSVC, static CRT)
+    runs-on: windows-2022
+    env:
+      RUSTFLAGS: "-C target-feature=+crt-static"
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: x86_64-pc-windows-msvc
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target x86_64-pc-windows-msvc --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
+
+  test-windows-gnu-stable:
+    name: Stable on Windows (GNU)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: x86_64-pc-windows-gnu
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target x86_64-pc-windows-gnu --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
