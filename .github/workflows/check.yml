@@ -1,6 +1,10 @@
-on: [pull_request, push]
-
 name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   test-linux-stable:
@@ -76,7 +80,7 @@ jobs:
 
   test-macos-stable:
     name: Stable @ macOS
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v2
