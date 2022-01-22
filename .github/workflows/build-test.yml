@@ -94,8 +94,30 @@ jobs:
           command: test
           args: --verbose
 
-  test-ios-stable:
-    name: Stable on iOS
+  test-ios-cross-stable:
+    name: Stable on iOS (Cross Compilation)
+    runs-on: macos-11
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: aarch64-apple-ios
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target aarch64-apple-ios --verbose
+
+  test-ios-simul-stable:
+    name: Stable on iOS (Simulation)
     runs-on: macos-11
     steps:
       - name: Checkout out repository
@@ -112,12 +134,6 @@ jobs:
 
       - name: Install cargo dinghy
         run: cargo install cargo-dinghy
-
-      - name: Run cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target x86_64-apple-ios --verbose
 
       - name: Run cargo test
         run: |
