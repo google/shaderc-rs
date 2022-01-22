@@ -94,9 +94,9 @@ jobs:
           command: test
           args: --verbose
 
-  test-ios-cross-stable:
-    name: Cross-compiling to iOS on Linux
-    runs-on: ubuntu-20.04
+  test-ios-stable:
+    name: Cross-compiling to iOS
+    runs-on: macos-11
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v2

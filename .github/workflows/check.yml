@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Install latest stable Rust toolchain
         uses: actions-rs/toolchain@v1
