@@ -110,14 +110,14 @@ jobs:
             target: x86_64-apple-ios
             override: true
 
+      - name: Install cargo dinghy
+        run: cargo install cargo-dinghy
+
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --target x86_64-apple-ios --verbose
-
-      - name: Install cargo dinghy
-        run: cargo install dinghy
 
       - name: Run cargo test
         run: |
