@@ -179,12 +179,11 @@ pub enum EnvVersion {
     Vulkan1_1 = (1 << 22) | (1 << 12),
     Vulkan1_2 = (1 << 22) | (2 << 12),
     // For OpenGL, use the number from #version in shaders.
-    // TODO(dneto): Currently no difference between OpenGL 4.5 and 4.6.
+    // Currently no difference between OpenGL 4.5 and 4.6.
     // See glslang/Standalone/Standalone.cpp
-    // TODO(dneto): Glslang doesn't accept a OpenGL client version of 460.
+    // Glslang doesn't accept a OpenGL client version of 460.
     OpenGL4_5 = 450,
-    // Currently WebGPU doesn't have versioning, since it isn't finalized. This
-    // will have to be updated once the spec is finished.
+    // Deprecated, WebGPU env never defined versions
     WebGPU,
 }
 
@@ -203,6 +202,7 @@ pub enum SpirvVersion {
     V1_3 = 0x0001_0300,
     V1_4 = 0x0001_0400,
     V1_5 = 0x0001_0500,
+    V1_6 = 0x0001_0600,
 }
 
 /// Source language.
@@ -1973,7 +1973,7 @@ void main() { my_ssbo.x = 1.0; }";
     #[test]
     fn test_get_spirv_version() {
         let (version, _) = get_spirv_version();
-        assert_eq!((1 << 16) + (5 << 8), version);
+        assert_eq!((1 << 16) + (6 << 8), version);
     }
 
     #[test]
