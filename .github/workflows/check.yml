@@ -1,0 +1,128 @@
+on: [pull_request, push]
+
+name: build
+
+jobs:
+  test-linux-stable:
+    name: Stable @ Linux
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+  test-linux-stable:
+    name: Stable @ Linux
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
+
+  test-linux-nightly:
+    name: Nightly @ Linux
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+
+      - name: Install latest nightly Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
+
+  test-macos-stable:
+    name: Stable @ macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
+
+  test-cross-ios-stable:
+    name: Stable @ Linux (Cross-compiling to iOS)
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout out repository
+        uses: actions/checkout@v2
+
+      - name: Install latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: aarch64-apple-ios
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
