@@ -95,7 +95,7 @@ jobs:
           args: --verbose
 
   test-ios-stable:
-    name: Cross-compiling to iOS
+    name: Stable on iOS
     runs-on: macos-11
     steps:
       - name: Checkout out repository
@@ -107,15 +107,23 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
             toolchain: stable
-            target: aarch64-apple-ios
+            target: x86_64-apple-ios
             override: true
-            components: rustfmt, clippy
+            components: dinghy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --target aarch64-apple-ios --verbose
+          args: --target x86_64-apple-ios --verbose
+
+      - name: Run cargo test
+        run: |
+          export RUNTIME_ID=$(xcrun simctl list runtimes | grep iOS | cut -d ' ' -f 7 | tail -1)
+          export SIMULATOR_ID=$(xcrun simctl create iPhoneSimulator com.apple.CoreSimulator.SimDeviceType.iPhone-8 $RUNTIME_ID)
+          xcrun simctl boot $SIMULATOR_ID
+          cargo dinghy test --target x86_64-apple-ios
+
 
   test-windows-msvc-stable:
     name: Stable on Windows (MSVC)
