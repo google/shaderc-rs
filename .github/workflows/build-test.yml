@@ -11,7 +11,7 @@ env:
 
 jobs:
   test-linux-stable:
-    name: Stable on Linux
+    name: Linux (Stable)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout out repository
@@ -24,7 +24,6 @@ jobs:
         with:
             toolchain: stable
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -39,7 +38,7 @@ jobs:
           args: --verbose
 
   test-linux-nightly:
-    name: Nightly on Linux
+    name: Linux (Nightly)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout out repository
@@ -52,7 +51,6 @@ jobs:
         with:
             toolchain: nightly
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -67,7 +65,7 @@ jobs:
           args: --verbose
 
   test-macos-stable:
-    name: Stable on macOS
+    name: macOS (Stable)
     runs-on: macos-11
     steps:
       - name: Checkout out repository
@@ -80,7 +78,6 @@ jobs:
         with:
             toolchain: stable
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -95,7 +92,7 @@ jobs:
           args: --verbose
 
   test-ios-stable:
-    name: Cross-compiling to iOS
+    name: iOS (Stable, ARM, Cross Compilation)
     runs-on: macos-11
     steps:
       - name: Checkout out repository
@@ -109,7 +106,6 @@ jobs:
             toolchain: stable
             target: aarch64-apple-ios
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -118,7 +114,7 @@ jobs:
           args: --target aarch64-apple-ios --verbose
 
   test-windows-msvc-stable:
-    name: Stable on Windows (MSVC)
+    name: Windows (Stable, MSVC)
     runs-on: windows-2022
     steps:
       - name: Checkout out repository
@@ -135,7 +131,6 @@ jobs:
             toolchain: stable
             target: x86_64-pc-windows-msvc
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -150,7 +145,7 @@ jobs:
           args: --verbose
 
   test-windows-msvc-static-stable:
-    name: Stable on Windows (MSVC, static CRT)
+    name: Windows (Stable, MSVC, static CRT)
     runs-on: windows-2022
     env:
       RUSTFLAGS: "-C target-feature=+crt-static"
@@ -169,7 +164,6 @@ jobs:
             toolchain: stable
             target: x86_64-pc-windows-msvc
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -184,18 +178,13 @@ jobs:
           args: --verbose
 
   test-windows-gnu-stable:
-    name: Stable on Windows (GNU)
+    name: Windows (Stable, GNU)
     runs-on: windows-2022
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v2
         with:
           submodules: true
-
-      - name: Install MinGW
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x64
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -206,7 +195,6 @@ jobs:
             toolchain: stable
             target: x86_64-pc-windows-gnu
             override: true
-            components: rustfmt, clippy
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
