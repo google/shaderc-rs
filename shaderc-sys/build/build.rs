@@ -23,7 +23,7 @@ static SHADERC_STATIC_LIB: &str = "shaderc_combined";
 static SHADERC_SHARED_LIB: &str = "shaderc_shared";
 static SHADERC_STATIC_LIB_FILE_UNIX: &str = "libshaderc_combined.a";
 static SHADERC_STATIC_LIB_FILE_WIN: &str = "shaderc_combined.lib";
-static MINIMAL_VULKAN_VERSION: &str = "1.2.182.0";
+static MIN_VULKAN_SDK_VERSION: u32 = 182;
 
 fn get_apple_sdk_path() -> Option<PathBuf> {
     let target = std::env::var("TARGET").unwrap();
@@ -128,27 +128,30 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
 }
 
 fn check_vulkan_sdk_version(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let xml = std::fs::read_to_string(path.join("components.xml"))
-        .map_err(|error| format!("Could not read components.xml in VULKAN_SDK: {error}"))?;
-    let tree = roxmltree::Document::parse(&xml).map_err(|error| {
-        format!("components.xml in VULKAN_SDK is not a valid XML document: {error}")
-    })?;
+    let xml = std::fs::read_to_string(
+        path.join("share")
+            .join("vulkan")
+            .join("registry")
+            .join("vk.xml"),
+    )
+    .map_err(|error| format!("could not read vk.xml in $VULKAN_SDK: {error}"))?;
+    let tree = roxmltree::Document::parse(&xml)
+        .map_err(|error| format!("vk.xml in $VULKAN_SDK is not a valid XML document: {error}"))?;
     let version = tree
         .root()
         .descendants()
-        .find(|node| node.has_tag_name("Package"))
-        .ok_or("components.xml in VULKAN_SDK is invalid, misses Package node.")?
+        .find(|node| node.has_tag_name("types"))
+        .ok_or("invalid vk.xml in $VULKAN_SDK is invalid: missing <types> node")?
         .descendants()
-        .find(|node| node.has_tag_name("Version"))
-        .ok_or("components.xml in VULKAN_SDK is invalid, misses Version node.")?
-        .text()
-        .ok_or("components.xml in VULKAN_SDK is invalid, Version node is not text.")?;
-    let version = String::from(version);
-    let version = lenient_semver::parse(&version.as_str()).unwrap();
-    let required = lenient_semver::parse(MINIMAL_VULKAN_VERSION)?;
-    if version < required {
+        .find(|node| node.text() == Some("VK_HEADER_VERSION"))
+        .ok_or("invalid vk.xml in $VULKAN_SDK is invalid: missing VK_HEADER_VERSION node")?
+        .tail()
+        .ok_or("invalid vk.xml in $VULKAN_SDK: no vesion string")?
+        .trim()
+        .parse::<u32>()?;
+    if version < MIN_VULKAN_SDK_VERSION {
         return Err(Box::from(format!(
-            "Vulkan SDK version must be at least {MINIMAL_VULKAN_VERSION}."
+            "requires Vulkan SDK patch version to be at least {MIN_VULKAN_SDK_VERSION}"
         )));
     }
     Ok(())
