@@ -23,4 +23,3 @@ libc = "0.2"
 [build-dependencies]
 cmake = "^0.1.37"
 roxmltree = "0.14.1"
-lenient_semver = { version = "0.4.2", features = [ "version_lite" ] }
