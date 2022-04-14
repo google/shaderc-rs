@@ -23,6 +23,7 @@ static SHADERC_STATIC_LIB: &str = "shaderc_combined";
 static SHADERC_SHARED_LIB: &str = "shaderc_shared";
 static SHADERC_STATIC_LIB_FILE_UNIX: &str = "libshaderc_combined.a";
 static SHADERC_STATIC_LIB_FILE_WIN: &str = "shaderc_combined.lib";
+static MINIMAL_VULKAN_VERSION: &str = "1.2.182.0";
 
 fn get_apple_sdk_path() -> Option<PathBuf> {
     let target = std::env::var("TARGET").unwrap();
@@ -126,6 +127,33 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     config.build()
 }
 
+fn check_vulkan_sdk_version(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let xml = std::fs::read_to_string(path.join("components.xml"))
+        .map_err(|error| format!("Could not read components.xml in VULKAN_SDK: {error}"))?;
+    let tree = roxmltree::Document::parse(&xml).map_err(|error| {
+        format!("components.xml in VULKAN_SDK is not a valid XML document: {error}")
+    })?;
+    let version = tree
+        .root()
+        .descendants()
+        .find(|node| node.has_tag_name("Package"))
+        .ok_or("components.xml in VULKAN_SDK is invalid, misses Package node.")?
+        .descendants()
+        .find(|node| node.has_tag_name("Version"))
+        .ok_or("components.xml in VULKAN_SDK is invalid, misses Version node.")?
+        .text()
+        .ok_or("components.xml in VULKAN_SDK is invalid, Version node is not text.")?;
+    let version = String::from(version);
+    let version = lenient_semver::parse(&version.as_str()).unwrap();
+    let required = lenient_semver::parse(MINIMAL_VULKAN_VERSION)?;
+    if version < required {
+        return Err(Box::from(format!(
+            "Vulkan SDK version must be at least {MINIMAL_VULKAN_VERSION}."
+        )));
+    }
+    Ok(())
+}
+
 fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
@@ -146,6 +174,7 @@ fn main() {
     // Try to find native shaderc library from Vulkan SDK if possible.
     if search_dir.is_none() {
         search_dir = if let Ok(sdk_dir) = env::var("VULKAN_SDK") {
+            check_vulkan_sdk_version(Path::new(&sdk_dir)).unwrap();
             println!(
                 "cargo:warning=shaderc: searching native shaderc libraries in Vulkan SDK '{}/lib'",
                 sdk_dir
@@ -195,7 +224,7 @@ fn main() {
         }
     }
 
-    // Canonicalize the sarch directory first.
+    // Canonicalize the search directory first.
     let search_dir = if let Some(search_dir) = search_dir {
         let path = Path::new(&search_dir);
         let cannonical = fs::canonicalize(&path);
