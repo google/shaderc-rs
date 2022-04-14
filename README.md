@@ -21,7 +21,7 @@ First add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-shaderc = "0.7"
+shaderc = "0.8"
 ```
 
 Then add to your crate root:
@@ -88,7 +88,7 @@ are passed through to shaderc-sys when building shaderc-rs:
    `/path/to/shaderc/libs/`, that path will be searched for native dynamic or
    static shaderc library.
 1. If the `VULKAN_SDK` environment variable is set, then `$VULKAN_SDK/lib` will
-   be searched for native dynamicd or static shaderc library.
+   be searched for native dynamic or static shaderc library.
 1. On Linux, system library paths like `/usr/lib/` will additionally be searched
    for native dynamic or shaderc library, if the `SHADERC_LIB_DIR` is not set.
 1. Building from source, if the native shaderc library is not found via the

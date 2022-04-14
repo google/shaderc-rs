@@ -1,6 +1,6 @@
 [package]
 name = "shaderc"
-version = "0.7.4"
+version = "0.8.0"
 authors = ["Lei Zhang <antiagainst@gmail.com>"]
 description = "Rust bindings for shaderc"
 documentation = "https://docs.rs/shaderc"
@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 libc = "0.2"
-shaderc-sys = { version = "0.7.4", path = "../shaderc-sys" }
+shaderc-sys = { version = "0.8.0", path = "../shaderc-sys" }
 
 [dev-dependencies]
 assert_matches = "1.5"
