@@ -113,32 +113,6 @@ jobs:
           command: build
           args: --target aarch64-apple-ios --verbose
 
-  test-ios-simul-stable:
-    name: iOS (Stable, X64, Simulation)
-    runs-on: macos-11
-    steps:
-      - name: Checkout out repository
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Install latest stable Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            target: x86_64-apple-ios
-            override: true
-
-      - name: Install cargo dinghy
-        run: cargo install cargo-dinghy
-
-      - name: Run cargo test
-        run: |
-          export RUNTIME_ID=$(xcrun simctl list runtimes | grep iOS | cut -d ' ' -f 7 | tail -1)
-          export SIMULATOR_ID=$(xcrun simctl create iPhoneSimulator com.apple.CoreSimulator.SimDeviceType.iPhone-8 $RUNTIME_ID)
-          xcrun simctl boot $SIMULATOR_ID
-          cargo dinghy test --target x86_64-apple-ios
-
 
   test-windows-msvc-stable:
     name: Windows (Stable, MSVC)
