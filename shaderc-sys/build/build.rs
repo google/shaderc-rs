@@ -158,6 +158,14 @@ fn check_vulkan_sdk_version(path: &Path) -> Result<(), Box<dyn std::error::Error
 }
 
 fn main() {
+    // Don't attempt to build shaderc native library on docs.rs
+    if env::var("DOCS_RS").is_ok() {
+        println!(
+            "cargo:warning=shaderc: docs.rs detected, will not attempt to link against shaderc"
+        );
+        return;
+    }
+    
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
     let config_build_from_source = env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_ok();
