@@ -707,6 +707,7 @@ impl<'a> CompileOptions<'a> {
     ///
     /// A return of `None` indicates that there was an error copying
     /// the underlying options object.
+    #[allow(clippy::should_implement_trait)]
     pub fn clone(&self) -> Option<CompileOptions> {
         let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
         if p.is_null() {
