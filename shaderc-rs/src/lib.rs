@@ -438,12 +438,12 @@ fn safe_str_from_utf8(bytes: &[u8]) -> String {
         Ok(str) => str.to_string(),
         Err(err) => {
             if err.valid_up_to() > 0 {
-                return format!(
+                format!(
                     "{} (followed by invalid UTF-8 characters)",
                     safe_str_from_utf8(&bytes[..err.valid_up_to()])
-                );
+                )
             } else {
-                return format!("invalid UTF-8 string: {}", err);
+                format!("invalid UTF-8 string: {err}")
             }
         }
     }
