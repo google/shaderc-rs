@@ -101,7 +101,7 @@ impl fmt::Display for Error {
                 if c == 1 {
                     write!(f, "compilation error")?;
                 } else {
-                    write!(f, "{} compilation errors", c)?;
+                    write!(f, "{c} compilation errors")?;
                 }
 
                 if !r.is_empty() {
@@ -114,28 +114,28 @@ impl fmt::Display for Error {
                 if r.is_empty() {
                     write!(f, "internal error")
                 } else {
-                    write!(f, "internal error: {}", r)
+                    write!(f, "internal error: {r}")
                 }
             }
             Error::InvalidStage(ref r) => {
                 if r.is_empty() {
                     write!(f, "invalid stage")
                 } else {
-                    write!(f, "invalid stage: {}", r)
+                    write!(f, "invalid stage: {r}")
                 }
             }
             Error::InvalidAssembly(ref r) => {
                 if r.is_empty() {
                     write!(f, "invalid assembly")
                 } else {
-                    write!(f, "invalid assembly: {}", r)
+                    write!(f, "invalid assembly: {r}")
                 }
             }
             Error::NullResultObject(ref r) => {
                 if r.is_empty() {
                     write!(f, "null result object")
                 } else {
-                    write!(f, "null result object: {}", r)
+                    write!(f, "null result object: {r}")
                 }
             }
         }
