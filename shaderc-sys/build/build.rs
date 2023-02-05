@@ -45,7 +45,7 @@ fn get_apple_sdk_path() -> Option<PathBuf> {
     };
 
     let output = if let Ok(out) = Command::new("xcrun")
-        .args(&["--sdk", sdk, "--show-sdk-path"])
+        .args(["--sdk", sdk, "--show-sdk-path"])
         .output()
     {
         out.stdout
@@ -232,7 +232,7 @@ fn main() {
     // Canonicalize the search directory first.
     let search_dir = if let Some(search_dir) = search_dir {
         let path = Path::new(&search_dir);
-        let cannonical = fs::canonicalize(&path);
+        let cannonical = fs::canonicalize(path);
         if path.is_relative() {
             println!(
                 "cargo:warning=shaderc: the given search path '{path:?}' is relative; \
