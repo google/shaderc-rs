@@ -531,7 +531,7 @@ impl Compiler {
                     shader_kind as i32,
                     c_file.as_ptr(),
                     c_entry_point.as_ptr(),
-                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                    additional_options.map_or(ptr::null(), |o| o.raw),
                 )
             };
             Compiler::handle_compilation_result(result, true)
@@ -567,7 +567,7 @@ impl Compiler {
                     shader_kind as i32,
                     c_file.as_ptr(),
                     c_entry_point.as_ptr(),
-                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                    additional_options.map_or(ptr::null(), |o| o.raw),
                 )
             };
             Compiler::handle_compilation_result(result, false)
@@ -599,7 +599,7 @@ impl Compiler {
                     ShaderKind::Vertex as i32,
                     c_file.as_ptr(),
                     c_entry_point.as_ptr(),
-                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                    additional_options.map_or(ptr::null(), |o| o.raw),
                 )
             };
             Compiler::handle_compilation_result(result, false)
@@ -629,7 +629,7 @@ impl Compiler {
                     self.raw,
                     c_source.as_ptr(),
                     source_size,
-                    additional_options.map_or(ptr::null(), |ref o| o.raw),
+                    additional_options.map_or(ptr::null(), |o| o.raw),
                 )
             };
             Compiler::handle_compilation_result(result, true)
