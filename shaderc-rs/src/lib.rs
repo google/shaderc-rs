@@ -1604,9 +1604,8 @@ void main() { my_ssbo.x = 1.0; }";
     fn test_include_directive_err() {
         let c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
-        options.set_include_callback(|name, _, _, _| {
-            Err(format!("Couldn't find header \"{}\"", name))
-        });
+        options
+            .set_include_callback(|name, _, _, _| Err(format!("Couldn't find header \"{name}\"")));
         let result = c.compile_into_spirv_assembly(
             r#"
             #version 400
@@ -1640,7 +1639,7 @@ void main() { my_ssbo.x = 1.0; }";
                     .to_string(),
                 })
             } else {
-                Err(format!("Couldn't find header \"{}\"", name))
+                Err(format!("Couldn't find header \"{name}\""))
             }
         });
         let result = c.compile_into_spirv_assembly(
