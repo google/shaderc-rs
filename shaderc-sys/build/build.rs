@@ -169,6 +169,7 @@ fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
     let config_build_from_source = env::var("CARGO_FEATURE_BUILD_FROM_SOURCE").is_ok();
+    let config_prefer_static_linking = env::var("CARGO_FEATURE_PREFER_STATIC_LINKING").is_ok();
     let has_explicit_set_search_dir = env::var("SHADERC_LIB_DIR").is_ok();
 
     // Initialize explicit shaderc search directory first.
@@ -275,12 +276,14 @@ fn main() {
         let dylib_path = search_dir.join(dylib_name);
 
         if let Some((lib_name, lib_kind)) = {
-            if dylib_path.exists() {
-                Some((SHADERC_SHARED_LIB, "dylib"))
-            } else if static_lib_path.exists() {
-                Some((SHADERC_STATIC_LIB, "static"))
-            } else {
-                None
+            match (
+                dylib_path.exists(),
+                static_lib_path.exists(),
+                config_prefer_static_linking,
+            ) {
+                (false, true, _) | (_, true, true) => Some((SHADERC_STATIC_LIB, "static")),
+                (true, _, _) => Some((SHADERC_SHARED_LIB, "dylib")),
+                _ => None,
             }
         } {
             match (target_os.as_str(), target_env.as_str()) {

@@ -16,6 +16,7 @@ name = "shaderc_sys"
 
 [features]
 build-from-source = []
+prefer-static-linking = []
 
 [dependencies]
 libc = "0.2"
