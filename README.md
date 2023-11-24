@@ -94,9 +94,11 @@ are passed through to shaderc-sys when building shaderc-rs:
 1. Building from source, if the native shaderc library is not found via the
    above steps.
 
-For each library directory, the build script will try to fine and link to the
+For each library directory, the build script will try to find and link to the
 dynamic native shaderc library `shaderc_shared` first and the static native
-shaderc library `shaderc_combined` next.
+shaderc library `shaderc_combined` next. To prefer searching for the static
+library first and the dynamic library next, the option
+`--features prefer-static-linking` may be used.
 
 Building from Source
 --------------------

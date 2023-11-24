@@ -281,8 +281,11 @@ fn main() {
                 static_lib_path.exists(),
                 config_prefer_static_linking,
             ) {
+                // if dylib not exist OR prefer static lib and static lib exist, static.
                 (false, true, _) | (_, true, true) => Some((SHADERC_STATIC_LIB, "static")),
+                // otherwise, if dylib exist, dynamic
                 (true, _, _) => Some((SHADERC_SHARED_LIB, "dylib")),
+                // neither dylib nor static lib exist
                 _ => None,
             }
         } {
