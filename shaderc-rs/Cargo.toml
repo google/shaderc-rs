@@ -21,3 +21,4 @@ assert_matches = "1.5"
 
 [features]
 build-from-source = ["shaderc-sys/build-from-source"]
+prefer-static-linking = ["shaderc-sys/prefer-static-linking"]
