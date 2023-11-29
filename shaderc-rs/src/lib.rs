@@ -1373,7 +1373,7 @@ void main() { my_ssbo.x = 1.0; }";
         let result = c
             .preprocess(VOID_E, "shader.glsl", "main", Some(&options))
             .unwrap();
-        assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
+        assert_eq!("#version 310 es\n void main() { }\n", result.as_text());
     }
 
     #[test]
