@@ -157,13 +157,32 @@ fn check_vulkan_sdk_version(path: &Path) -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
+fn host_target() -> String {
+    let output = std::process::Command::new("rustc")
+        .arg("-vV")
+        .output()
+        .expect("failed to invoke rustc");
+
+    std::str::from_utf8(&output.stdout)
+        .expect("rustc didn't return valid UTF-8")
+        .lines()
+        .find_map(|l| l.strip_prefix("host: "))
+        .expect("failed to query rustc for the host target triple")
+        .to_owned()
+}
+
 fn main() {
-    // Don't attempt to build shaderc native library on docs.rs
+    // Don't attempt to build shaderc native library on docs.rs when cross-compiling.
     if env::var("DOCS_RS").is_ok() {
-        println!(
-            "cargo:warning=shaderc: docs.rs detected, will not attempt to link against shaderc"
-        );
-        return;
+        let is_cross_compiling = env::var("TARGET").unwrap() != host_target();
+
+        if is_cross_compiling {
+            println!(
+                "cargo:warning=shaderc: docs.rs cross-compilation detected, will not attempt to \
+                link against shaderc",
+            );
+            return;
+        }
     }
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
