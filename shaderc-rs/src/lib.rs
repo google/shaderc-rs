@@ -76,6 +76,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::panic;
+use std::rc::Rc;
 use std::{error, fmt, ptr, result, slice, str};
 
 /// Error.
@@ -648,7 +649,7 @@ impl Drop for Compiler {
 pub type IncludeCallbackResult = result::Result<ResolvedInclude, String>;
 
 type BoxedIncludeCallback<'a> =
-    Box<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>;
+    Rc<dyn Fn(&str, IncludeType, &str, usize) -> IncludeCallbackResult + 'a>;
 
 /// An opaque object managing options to compilation.
 pub struct CompileOptions<'a> {
@@ -693,23 +694,6 @@ impl<'a> CompileOptions<'a> {
     /// the underlying options object.
     pub fn new() -> Option<CompileOptions<'a>> {
         let p = unsafe { scs::shaderc_compile_options_initialize() };
-        if p.is_null() {
-            None
-        } else {
-            Some(CompileOptions {
-                raw: p,
-                include_callback_fn: None,
-            })
-        }
-    }
-
-    /// Returns a copy of the given compilation options object.
-    ///
-    /// A return of `None` indicates that there was an error copying
-    /// the underlying options object.
-    #[allow(clippy::should_implement_trait)]
-    pub fn clone(&self) -> Option<CompileOptions> {
-        let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
         if p.is_null() {
             None
         } else {
@@ -787,7 +771,7 @@ impl<'a> CompileOptions<'a> {
     {
         use std::mem;
 
-        let f = Box::new(f);
+        let f = Rc::new(f);
         let f_ptr = &*f as *const F;
         self.include_callback_fn = Some(f as BoxedIncludeCallback<'a>);
         unsafe {
@@ -1112,6 +1096,27 @@ impl<'a> CompileOptions<'a> {
     /// Note that the suppress-warnings mode overrides this.
     pub fn set_warnings_as_errors(&mut self) {
         unsafe { scs::shaderc_compile_options_set_warnings_as_errors(self.raw) }
+    }
+}
+
+impl<'a> Clone for CompileOptions<'a> {
+    fn clone(&self) -> Self {
+        let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
+
+        // This should never happen, outside of a heap allocation failure.
+        // `shaderc_compile_options_clone()` is documented as being identical to
+        // `shaderc_compile_options_init()` when passed a NULL ptr, and there
+        // are no other failure conditions (it is a trivial C++ copy
+        // constructor).
+        assert!(
+            !p.is_null(),
+            "shaderc_compile_options_clone() returned NULL"
+        );
+
+        CompileOptions {
+            raw: p,
+            include_callback_fn: self.include_callback_fn.clone(),
+        }
     }
 }
 
@@ -1442,7 +1447,7 @@ void main() { my_ssbo.x = 1.0; }";
         let c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options.add_macro_definition("E", None);
-        let o = options.clone().unwrap();
+        let o = options.clone();
         let result = c
             .compile_into_spirv_assembly(
                 IFDEF_E,
