@@ -80,62 +80,87 @@ use std::{error, fmt, ptr, result, slice, str};
 
 /// Error.
 ///
-/// Each enumerants has an affixed string describing detailed reasons for
-/// the error. The string can be empty in cases.
+/// Each enumerant has an affixed string describing detailed reasons for
+/// the error. The string can be empty in certain cases.
 #[derive(Debug, PartialEq)]
 pub enum Error {
     /// Compilation error.
     ///
-    /// Contains the number of errors and detailed error string.
+    /// Contains the number of errors and a detailed error string.
     CompilationError(u32, String),
     InternalError(String),
     InvalidStage(String),
     InvalidAssembly(String),
     NullResultObject(String),
+
+    /// Returned when an internal initialization fails, for instance creating
+    /// a `Compiler` or `CompileOptions` fails because the underlying shaderc
+    /// function returned null.
+    InitializationError(String),
+
+    /// Returned when string parsing fails (e.g., version/profile parsing).
+    ParseError(String),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::CompilationError(c, ref r) => {
-                if c == 1 {
+            Error::CompilationError(count, ref reason) => {
+                if count == 1 {
                     write!(f, "compilation error")?;
                 } else {
-                    write!(f, "{c} compilation errors")?;
+                    write!(f, "{} compilation errors", count)?;
                 }
-
-                if !r.is_empty() {
-                    write!(f, ":{}{}", if r.contains('\n') { "\n" } else { " " }, r)?;
+                if !reason.is_empty() {
+                    write!(
+                        f,
+                        ":{}{}",
+                        if reason.contains('\n') { "\n" } else { " " },
+                        reason
+                    )?;
                 }
-
                 Ok(())
             }
             Error::InternalError(ref r) => {
                 if r.is_empty() {
                     write!(f, "internal error")
                 } else {
-                    write!(f, "internal error: {r}")
+                    write!(f, "internal error: {}", r)
                 }
             }
             Error::InvalidStage(ref r) => {
                 if r.is_empty() {
                     write!(f, "invalid stage")
                 } else {
-                    write!(f, "invalid stage: {r}")
+                    write!(f, "invalid stage: {}", r)
                 }
             }
             Error::InvalidAssembly(ref r) => {
                 if r.is_empty() {
                     write!(f, "invalid assembly")
                 } else {
-                    write!(f, "invalid assembly: {r}")
+                    write!(f, "invalid assembly: {}", r)
                 }
             }
             Error::NullResultObject(ref r) => {
                 if r.is_empty() {
                     write!(f, "null result object")
                 } else {
-                    write!(f, "null result object: {r}")
+                    write!(f, "null result object: {}", r)
+                }
+            }
+            Error::InitializationError(ref r) => {
+                if r.is_empty() {
+                    write!(f, "initialization error")
+                } else {
+                    write!(f, "initialization error: {}", r)
+                }
+            }
+            Error::ParseError(ref r) => {
+                if r.is_empty() {
+                    write!(f, "parse error")
+                } else {
+                    write!(f, "parse error: {}", r)
                 }
             }
         }
@@ -150,6 +175,8 @@ impl error::Error for Error {
             Error::InvalidStage(_) => "invalid stage",
             Error::InvalidAssembly(_) => "invalid assembly",
             Error::NullResultObject(_) => "null result object",
+            Error::InitializationError(_) => "initialization error",
+            Error::ParseError(_) => "parse error",
         }
     }
 }
@@ -455,7 +482,7 @@ where
 /// a UTF-8 string
 fn safe_str_from_utf8(bytes: &[u8]) -> String {
     match str::from_utf8(bytes) {
-        Ok(str) => str.to_string(),
+        Ok(s) => s.to_string(),
         Err(err) => {
             if err.valid_up_to() > 0 {
                 format!(
@@ -463,23 +490,25 @@ fn safe_str_from_utf8(bytes: &[u8]) -> String {
                     safe_str_from_utf8(&bytes[..err.valid_up_to()])
                 )
             } else {
-                format!("invalid UTF-8 string: {err}")
+                format!("invalid UTF-8 string: {}", err)
             }
         }
     }
 }
 
 impl Compiler {
-    /// Returns an compiler object that can be used to compile SPIR-V modules.
+    /// Returns a `Compiler` object that can be used to compile SPIR-V modules.
     ///
-    /// A return of `None` indicates that there was an error initializing
-    /// the underlying compiler.
-    pub fn new() -> Option<Compiler> {
+    /// A return of `Err` indicates that there was an error initializing
+    /// the underlying compiler (i.e., `shaderc_compiler_initialize()` returned null).
+    pub fn new() -> Result<Self> {
         let p = unsafe { scs::shaderc_compiler_initialize() };
         if p.is_null() {
-            None
+            Err(Error::InitializationError(
+                "Failed to create a shaderc compiler.".to_string(),
+            ))
         } else {
-            Some(Compiler { raw: p })
+            Ok(Compiler { raw: p })
         }
     }
 
@@ -708,14 +737,15 @@ impl<'a> CompileOptions<'a> {
     /// * Target environment: Vulkan
     /// * Source language: GLSL
     ///
-    /// A return of `None` indicates that there was an error initializing
-    /// the underlying options object.
-    pub fn new() -> Option<CompileOptions<'a>> {
+    /// Returns `Err(Error::InitializationError)` if creation failed.
+    pub fn new() -> Result<CompileOptions<'a>> {
         let p = unsafe { scs::shaderc_compile_options_initialize() };
         if p.is_null() {
-            None
+            Err(Error::InitializationError(
+                "Failed to create CompileOptions.".to_string(),
+            ))
         } else {
-            Some(CompileOptions {
+            Ok(CompileOptions {
                 raw: p,
                 include_callback_fn: None,
             })
@@ -724,30 +754,34 @@ impl<'a> CompileOptions<'a> {
 
     /// Returns a copy of the given compilation options object.
     ///
-    /// A return of `None` indicates that there was an error copying
-    /// the underlying options object.
+    /// Returns `Err(Error::InitializationError)` if the clone operation failed (underlying call
+    /// returned null).
     #[allow(clippy::should_implement_trait)]
-    pub fn clone(&self) -> Option<CompileOptions> {
+    pub fn clone(&self) -> Result<CompileOptions<'a>> {
         let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
         if p.is_null() {
-            None
+            Err(Error::InitializationError(
+                "Failed to clone CompileOptions.".to_string(),
+            ))
         } else {
-            Some(CompileOptions {
+            Ok(CompileOptions {
                 raw: p,
                 include_callback_fn: None,
             })
         }
     }
 
-    /// Sets the target enviroment to `env`, affecting which warnings or errors
+    /// Sets the target environment to `env`, affecting which warnings or errors
     /// will be issued.
     ///
     /// The default is Vulkan if not set.
     ///
     /// `version` will be used for distinguishing between different versions
     /// of the target environment.
-    /// Note that EnvVersion must be cast to u32 when calling set_target_env.
-    /// For example: `options.set_target_env(shaderc::TargetEnv::Vulkan, shaderc::EnvVersion::Vulkan1_1 as u32);`
+    /// For example:
+    /// ```ignore
+    /// options.set_target_env(shaderc::TargetEnv::Vulkan, shaderc::EnvVersion::Vulkan1_1 as u32);
+    /// ```
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
         unsafe { scs::shaderc_compile_options_set_target_env(self.raw, env as i32, version) }
     }
@@ -1005,9 +1039,9 @@ impl<'a> CompileOptions<'a> {
 
     /// Sets a descriptor set and binding for an HLSL register in all shader stages.
     pub fn set_hlsl_register_set_and_binding(&mut self, register: &str, set: &str, binding: &str) {
-        let c_register = CString::new(register).expect("cannot convert string to c string");
-        let c_set = CString::new(set).expect("cannot convert string to c string");
-        let c_binding = CString::new(binding).expect("cannot convert string to c string");
+        let c_register = CString::new(register).expect("cannot convert register to c string");
+        let c_set = CString::new(set).expect("cannot convert set to c string");
+        let c_binding = CString::new(binding).expect("cannot convert binding to c string");
         unsafe {
             scs::shaderc_compile_options_set_hlsl_register_set_and_binding(
                 self.raw,
@@ -1055,7 +1089,7 @@ impl<'a> CompileOptions<'a> {
         }
     }
 
-    /// Sets whether the compiler should invert position.Y output in vertex shader.
+    /// Sets whether the compiler should invert position.Y output in a vertex shader.
     pub fn set_invert_y(&mut self, enable: bool) {
         unsafe {
             scs::shaderc_compile_options_set_invert_y(self.raw, enable);
@@ -1080,9 +1114,9 @@ impl<'a> CompileOptions<'a> {
     /// same name has previously been added, the value is replaced with the
     /// new value.
     pub fn add_macro_definition(&mut self, name: &str, value: Option<&str>) {
-        let c_name = CString::new(name).expect("cannot convert name to c string");
+        let c_name = CString::new(name).expect("cannot convert macro name to c string");
         if let Some(value) = value {
-            let c_value = CString::new(value).expect("cannot convert value to c string");
+            let c_value = CString::new(value).expect("cannot convert macro value to c string");
             unsafe {
                 scs::shaderc_compile_options_add_macro_definition(
                     self.raw,
@@ -1107,7 +1141,7 @@ impl<'a> CompileOptions<'a> {
 
     /// Sets the optimization level to `level`.
     ///
-    /// If mulitple invocations for this method, only the last one takes effect.
+    /// If multiple invocations for this method, only the last one takes effect.
     pub fn set_optimization_level(&mut self, level: OptimizationLevel) {
         unsafe { scs::shaderc_compile_options_set_optimization_level(self.raw, level as i32) }
     }
@@ -1168,8 +1202,7 @@ impl CompilationArtifact {
     ///
     /// # Panics
     ///
-    /// This method will panic if the compilation does not generate a
-    /// binary output.
+    /// Panics if the compilation does not generate a binary output.
     pub fn as_binary(&self) -> &[u32] {
         if !self.is_binary {
             panic!("not binary result")
@@ -1189,8 +1222,7 @@ impl CompilationArtifact {
     ///
     /// # Panics
     ///
-    /// This method will panic if the compilation does not generate a
-    /// binary output.
+    /// Panics if the compilation does not generate a binary output.
     pub fn as_binary_u8(&self) -> &[u8] {
         if !self.is_binary {
             panic!("not binary result")
@@ -1208,8 +1240,7 @@ impl CompilationArtifact {
     ///
     /// # Panics
     ///
-    /// This method will panic if the compilation does not generate a
-    /// text output.
+    /// Panics if the compilation does not generate a text output.
     pub fn as_text(&self) -> String {
         if self.is_binary {
             panic!("not text result")
@@ -1225,7 +1256,7 @@ impl CompilationArtifact {
 
     /// Returns the number of warnings generated during the compilation.
     pub fn get_num_warnings(&self) -> u32 {
-        (unsafe { scs::shaderc_result_get_num_warnings(self.raw) }) as u32
+        unsafe { scs::shaderc_result_get_num_warnings(self.raw) as u32 }
     }
 
     /// Returns the detailed warnings as a string.
@@ -1256,11 +1287,11 @@ pub fn get_spirv_version() -> (u32, u32) {
     (version as u32, revision as u32)
 }
 
-/// Parses the version and profile from the given `string`.
+/// Parses the version and profile from the given `string`, returning a `Result`.
 ///
-/// The string should contain both version and profile, like: `450core`.
-/// Returns `None` if the string can not be parsed.
-pub fn parse_version_profile(string: &str) -> Option<(u32, GlslProfile)> {
+/// The string should contain both version and profile, like `450core`.
+/// Returns an error if the string cannot be parsed.
+pub fn parse_version_profile(string: &str) -> Result<(u32, GlslProfile)> {
     let mut version: i32 = 0;
     let mut profile: i32 = 0;
     let c_string = CString::new(string).expect("cannot convert string to c string");
@@ -1268,16 +1299,19 @@ pub fn parse_version_profile(string: &str) -> Option<(u32, GlslProfile)> {
         scs::shaderc_parse_version_profile(c_string.as_ptr(), &mut version, &mut profile)
     };
     if !result {
-        None
+        Err(Error::ParseError(format!(
+            "Failed to parse version/profile from '{}'",
+            string
+        )))
     } else {
         let p = match profile {
             0 => GlslProfile::None,
             1 => GlslProfile::Core,
             2 => GlslProfile::Compatibility,
             3 => GlslProfile::Es,
-            _ => panic!("internal error: unhandled profile"),
+            _ => panic!("internal error: unhandled profile value {}", profile),
         };
-        Some((version as u32, p))
+        Ok((version as u32, p))
     }
 }
 
