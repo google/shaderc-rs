@@ -109,7 +109,7 @@ impl fmt::Display for Error {
                 if count == 1 {
                     write!(f, "compilation error")?;
                 } else {
-                    write!(f, "{} compilation errors", count)?;
+                    write!(f, "{count} compilation errors")?;
                 }
                 if !reason.is_empty() {
                     write!(
@@ -125,42 +125,42 @@ impl fmt::Display for Error {
                 if r.is_empty() {
                     write!(f, "internal error")
                 } else {
-                    write!(f, "internal error: {}", r)
+                    write!(f, "internal error: {r}")
                 }
             }
             Error::InvalidStage(ref r) => {
                 if r.is_empty() {
                     write!(f, "invalid stage")
                 } else {
-                    write!(f, "invalid stage: {}", r)
+                    write!(f, "invalid stage: {r}")
                 }
             }
             Error::InvalidAssembly(ref r) => {
                 if r.is_empty() {
                     write!(f, "invalid assembly")
                 } else {
-                    write!(f, "invalid assembly: {}", r)
+                    write!(f, "invalid assembly: {r}")
                 }
             }
             Error::NullResultObject(ref r) => {
                 if r.is_empty() {
                     write!(f, "null result object")
                 } else {
-                    write!(f, "null result object: {}", r)
+                    write!(f, "null result object: {r}")
                 }
             }
             Error::InitializationError(ref r) => {
                 if r.is_empty() {
                     write!(f, "initialization error")
                 } else {
-                    write!(f, "initialization error: {}", r)
+                    write!(f, "initialization error: {r}")
                 }
             }
             Error::ParseError(ref r) => {
                 if r.is_empty() {
                     write!(f, "parse error")
                 } else {
-                    write!(f, "parse error: {}", r)
+                    write!(f, "parse error: {r}")
                 }
             }
         }
@@ -490,7 +490,7 @@ fn safe_str_from_utf8(bytes: &[u8]) -> String {
                     safe_str_from_utf8(&bytes[..err.valid_up_to()])
                 )
             } else {
-                format!("invalid UTF-8 string: {}", err)
+                format!("invalid UTF-8 string: {err}")
             }
         }
     }
@@ -1300,8 +1300,7 @@ pub fn parse_version_profile(string: &str) -> Result<(u32, GlslProfile)> {
     };
     if !result {
         Err(Error::ParseError(format!(
-            "Failed to parse version/profile from '{}'",
-            string
+            "Failed to parse version/profile from '{string}'"
         )))
     } else {
         let p = match profile {
@@ -1426,7 +1425,7 @@ void main() { my_ssbo.x = 1.0; }";
         let result = c
             .preprocess(VOID_E, "shader.glsl", "main", Some(&options))
             .unwrap();
-        assert_eq!("#version 310 es\n void main(){ }\n", result.as_text());
+        assert_eq!("#version 310 es\n void main() { }\n", result.as_text());
     }
 
     #[test]
@@ -2035,13 +2034,23 @@ void main() { my_ssbo.x = 1.0; }";
 
     #[test]
     fn test_parse_version_profile() {
-        assert_eq!(Some((310, GlslProfile::Es)), parse_version_profile("310es"));
+        assert_eq!(Ok((310, GlslProfile::Es)), parse_version_profile("310es"));
         assert_eq!(
-            Some((450, GlslProfile::Compatibility)),
+            Ok((450, GlslProfile::Compatibility)),
             parse_version_profile("450compatibility")
         );
-        assert_eq!(Some((140, GlslProfile::None)), parse_version_profile("140"));
-        assert_eq!(None, parse_version_profile("something"));
-        assert_eq!(None, parse_version_profile(""));
+        assert_eq!(Ok((140, GlslProfile::None)), parse_version_profile("140"));
+        assert_eq!(
+            Err(Error::ParseError(
+                "Failed to parse version/profile from 'something'".to_string()
+            )),
+            parse_version_profile("something")
+        );
+        assert_eq!(
+            Err(Error::ParseError(
+                "Failed to parse version/profile from ''".to_string()
+            )),
+            parse_version_profile("")
+        );
     }
 }
