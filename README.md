@@ -157,7 +157,7 @@ Use your package manager to install the required dev-tools
 
 For example on ubuntu:
 ```
-sudo apt-get install build-essential cmake git ninja python3
+sudo apt-get install build-essential cmake git ninja-build python3
 ```
 
 On Arch linux, you can directly install the [shaderc package](https://www.archlinux.org/packages/extra/x86_64/shaderc/).
