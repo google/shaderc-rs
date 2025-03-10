@@ -89,15 +89,16 @@ are passed through to shaderc-sys when building shaderc-rs:
    static shaderc library.
 1. If the `VULKAN_SDK` environment variable is set, then `$VULKAN_SDK/lib` will
    be searched for native dynamic or static shaderc library.
+1. If `pkg-config` is available, use it to find the path to search for libraries.
 1. On Linux, system library paths like `/usr/lib/` will additionally be searched
    for native dynamic or shaderc library, if the `SHADERC_LIB_DIR` is not set.
 1. Building from source, if the native shaderc library is not found via the
    above steps.
 
 For each library directory, the build script will try to find and link to the
-dynamic native shaderc library `shaderc_shared` first and the static native
-shaderc library `shaderc_combined` next. To prefer searching for the static
-library first and the dynamic library next, the option
+dynamic native shaderc library `shaderc`/`shaderc_shared` first and the static
+native shaderc library `shaderc_combined` next. To prefer searching for the
+static library first and the dynamic library next, the option
 `--features prefer-static-linking` may be used.
 
 Building from Source
