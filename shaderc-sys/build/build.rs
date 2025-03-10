@@ -211,6 +211,16 @@ fn main() {
         };
     }
 
+    if search_dir.is_none() {
+        search_dir = if let Ok(pkg_lib) = pkg_config::Config::new().probe(SHADERC_SHARED_LIB0) {
+            let pkg_dir = pkg_lib.link_paths[0].as_path().to_string_lossy();
+            println!("cargo:warning=shaderc: searching native shaderc libraries in '{pkg_dir}' from pkg-config");
+            Some(pkg_dir.to_string())
+        } else {
+            None
+        };
+    }
+
     // If no explicit path is set and no explicit request is made to build from
     // source, check known system locations before falling back to build from source.
     // This set `search_dir` for later usage.
