@@ -49,6 +49,7 @@
 #![allow(non_camel_case_types)]
 
 extern crate libc;
+extern crate link_cplusplus;
 use libc::{c_char, c_int, c_void, size_t};
 
 pub enum ShadercCompiler {}

@@ -20,6 +20,7 @@ prefer-static-linking = []
 
 [dependencies]
 libc = "0.2"
+link-cplusplus = "1.0"
 
 [build-dependencies]
 cmake = "^0.1.37"
