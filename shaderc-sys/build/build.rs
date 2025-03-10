@@ -324,7 +324,6 @@ fn main() {
                 ("linux", _) => {
                     println!("cargo:rustc-link-search=native={search_dir_str}");
                     println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
-                    println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("windows", "msvc") => {
@@ -337,21 +336,18 @@ fn main() {
                     println!("cargo:warning=shaderc: Windows MinGW static build is experimental");
                     println!("cargo:rustc-link-search=native={search_dir_str}");
                     println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
-                    println!("cargo:rustc-link-lib=dylib=stdc++");
                     return;
                 }
                 ("macos", _) => {
                     println!("cargo:warning=shaderc: macOS static build is experimental");
                     println!("cargo:rustc-link-search=native={search_dir_str}");
                     println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
-                    println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
                 ("ios", _) => {
                     println!("cargo:warning=shaderc: macOS static build is experimental");
                     println!("cargo:rustc-link-search=native={search_dir_str}");
                     println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
-                    println!("cargo:rustc-link-lib=dylib=c++");
                     return;
                 }
                 (_, _) => {
@@ -398,17 +394,4 @@ fn main() {
     lib_path.push("lib");
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib=static={SHADERC_STATIC_LIB}");
-
-    emit_std_cpp_link();
-}
-
-fn emit_std_cpp_link() {
-    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
-    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
-
-    match (target_os.as_str(), target_env.as_str()) {
-        ("linux", _) | ("windows", "gnu") => println!("cargo:rustc-link-lib=dylib=stdc++"),
-        ("macos", _) => println!("cargo:rustc-link-lib=dylib=c++"),
-        _ => {}
-    }
 }
