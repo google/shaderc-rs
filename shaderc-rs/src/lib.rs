@@ -505,7 +505,7 @@ impl Compiler {
         let p = unsafe { scs::shaderc_compiler_initialize() };
         if p.is_null() {
             Err(Error::InitializationError(
-                "Failed to create a shaderc compiler.".to_string(),
+                "failed to create a shaderc compiler.".to_string(),
             ))
         } else {
             Ok(Compiler { raw: p })
@@ -742,7 +742,7 @@ impl<'a> CompileOptions<'a> {
         let p = unsafe { scs::shaderc_compile_options_initialize() };
         if p.is_null() {
             Err(Error::InitializationError(
-                "Failed to create CompileOptions.".to_string(),
+                "failed to create CompileOptions.".to_string(),
             ))
         } else {
             Ok(CompileOptions {
@@ -761,7 +761,7 @@ impl<'a> CompileOptions<'a> {
         let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
         if p.is_null() {
             Err(Error::InitializationError(
-                "Failed to clone CompileOptions.".to_string(),
+                "failed to clone CompileOptions.".to_string(),
             ))
         } else {
             Ok(CompileOptions {
@@ -1300,7 +1300,7 @@ pub fn parse_version_profile(string: &str) -> Result<(u32, GlslProfile)> {
     };
     if !result {
         Err(Error::ParseError(format!(
-            "Failed to parse version/profile from '{string}'"
+            "failed to parse version/profile from '{string}'"
         )))
     } else {
         let p = match profile {
@@ -1635,11 +1635,11 @@ void main() { my_ssbo.x = 1.0; }";
     }
 
     #[test]
-    #[should_panic(expected = "Panic in include resolver!")]
+    #[should_panic(expected = "panic in include resolver!")]
     fn test_include_directive_panic() {
         let c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
-        options.set_include_callback(|_, _, _, _| panic!("Panic in include resolver!"));
+        options.set_include_callback(|_, _, _, _| panic!("panic in include resolver!"));
         drop(c.compile_into_spirv_assembly(
             r#"
             #version 400
@@ -1657,7 +1657,7 @@ void main() { my_ssbo.x = 1.0; }";
         let c = Compiler::new().unwrap();
         let mut options = CompileOptions::new().unwrap();
         options
-            .set_include_callback(|name, _, _, _| Err(format!("Couldn't find header \"{name}\"")));
+            .set_include_callback(|name, _, _, _| Err(format!("couldn't find header \"{name}\"")));
         let result = c.compile_into_spirv_assembly(
             r#"
             #version 400
@@ -1671,7 +1671,7 @@ void main() { my_ssbo.x = 1.0; }";
         assert!(result.is_err());
         assert_matches!(result.err(),
             Some(Error::CompilationError(1, ref s))
-            if s.contains("Couldn't find header \"foo.glsl\""));
+            if s.contains("couldn't find header \"foo.glsl\""));
     }
 
     #[test]
@@ -1691,7 +1691,7 @@ void main() { my_ssbo.x = 1.0; }";
                     .to_string(),
                 })
             } else {
-                Err(format!("Couldn't find header \"{name}\""))
+                Err(format!("couldn't find header \"{name}\""))
             }
         });
         let result = c.compile_into_spirv_assembly(
@@ -2042,13 +2042,13 @@ void main() { my_ssbo.x = 1.0; }";
         assert_eq!(Ok((140, GlslProfile::None)), parse_version_profile("140"));
         assert_eq!(
             Err(Error::ParseError(
-                "Failed to parse version/profile from 'something'".to_string()
+                "failed to parse version/profile from 'something'".to_string()
             )),
             parse_version_profile("something")
         );
         assert_eq!(
             Err(Error::ParseError(
-                "Failed to parse version/profile from ''".to_string()
+                "failed to parse version/profile from ''".to_string()
             )),
             parse_version_profile("")
         );
