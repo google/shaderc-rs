@@ -505,7 +505,7 @@ impl Compiler {
         let p = unsafe { scs::shaderc_compiler_initialize() };
         if p.is_null() {
             Err(Error::InitializationError(
-                "failed to create a shaderc compiler.".to_string(),
+                "failed to create a shaderc compiler".to_string(),
             ))
         } else {
             Ok(Compiler { raw: p })
@@ -742,7 +742,7 @@ impl<'a> CompileOptions<'a> {
         let p = unsafe { scs::shaderc_compile_options_initialize() };
         if p.is_null() {
             Err(Error::InitializationError(
-                "failed to create CompileOptions.".to_string(),
+                "failed to create CompileOptions".to_string(),
             ))
         } else {
             Ok(CompileOptions {
@@ -761,7 +761,7 @@ impl<'a> CompileOptions<'a> {
         let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
         if p.is_null() {
             Err(Error::InitializationError(
-                "failed to clone CompileOptions.".to_string(),
+                "failed to clone CompileOptions".to_string(),
             ))
         } else {
             Ok(CompileOptions {
