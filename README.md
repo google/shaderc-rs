@@ -125,7 +125,7 @@ to get setup.
 ### windows-msvc Example Setup
 
 1. `rustup default stable-x86_64-pc-windows-msvc`
-2. Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017).
+2. Install [Build Tools for Visual Studio 2022](https://aka.ms/vs/17/release/vs_BuildTools.exe).
    If you have already been using this toolchain then its probably already
    installed.
 3. Install the necessary tools as listed in the above and add their paths
@@ -136,20 +136,15 @@ to get setup.
 windows-gnu toolchain is not supported but you can instead cross-compile to
 windows-gnu from windows-msvc.
 
-Steps 1 and 2 are to workaround https://github.com/rust-lang/rust/issues/49078
-by using the same mingw that rust uses.
-
-1. Download and extract https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rust-ci-mirror/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
-2. Add the absolute path to mingw64\bin to your PATH environment variable.
-3. Run the command: `rustup default stable-x86_64-pc-windows-msvc`
-4. Run the command: `rustup target install x86_64-pc-windows-gnu`
-5. Install [Build Tools for Visual Studio 2017](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017).
+1. Run the command: `rustup default stable-x86_64-pc-windows-msvc`
+1. Run the command: `rustup target install x86_64-pc-windows-gnu`
+1. Install [Build Tools for Visual Studio 2022](https://aka.ms/vs/17/release/vs_BuildTools.exe).
    If you have already been using this toolchain then its probably already
    installed.
-6. Install [msys2](http://www.msys2.org/), following ALL of the instructions.
-7. Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python3 mingw-w64-x86_64-ninja`
-8. Add the msys2 mingw64 binary path to the PATH environment variable.
-9. Any cargo command that builds the project needs to include
+1. Install [msys2](http://www.msys2.org/), following ALL of the instructions.
+1. Then in the msys2 terminal run: `pacman --noconfirm -Syu mingw-w64-x86_64-cmake mingw-w64-x86_64-make mingw-w64-x86_64-python3 mingw-w64-x86_64-ninja`
+1. Add the msys2 mingw64 binary path to the PATH environment variable.
+1. Any cargo command that builds the project needs to include
    `--target x86_64-pc-windows-gnu` e.g. to run: `cargo run --target x86_64-pc-windows-gnu`
 
 ### Linux Example Setup
@@ -168,7 +163,7 @@ On Arch linux, you can directly install the [shaderc package](https://www.archli
 Assuming Homebrew:
 
 ```
-brew install git cmake ninja python@3.8
+brew install git cmake ninja python@3.12
 ```
 
 Contributions
