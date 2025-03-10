@@ -206,6 +206,7 @@ pub enum EnvVersion {
     Vulkan1_1 = (1 << 22) | (1 << 12),
     Vulkan1_2 = (1 << 22) | (2 << 12),
     Vulkan1_3 = (1 << 22) | (3 << 12),
+    Vulkan1_4 = (1 << 22) | (4 << 12),
     // For OpenGL, use the number from #version in shaders.
     // Currently no difference between OpenGL 4.5 and 4.6.
     // See glslang/Standalone/Standalone.cpp
