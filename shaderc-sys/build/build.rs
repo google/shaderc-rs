@@ -20,7 +20,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 static SHADERC_STATIC_LIB: &str = "shaderc_combined";
-static SHADERC_SHARED_LIB: &str = "shaderc_shared";
+static SHADERC_SHARED_LIB0: &str = "shaderc";
+static SHADERC_SHARED_LIB1: &str = "shaderc_shared";
 static SHADERC_STATIC_LIB_FILE_UNIX: &str = "libshaderc_combined.a";
 static SHADERC_STATIC_LIB_FILE_WIN: &str = "shaderc_combined.lib";
 static MIN_VULKAN_SDK_VERSION: u32 = 182;
@@ -286,24 +287,35 @@ fn main() {
             SHADERC_STATIC_LIB_FILE_UNIX
         });
 
-        let dylib_name = format!(
+        let dylib0_name = format!(
             "{}{}{}",
             consts::DLL_PREFIX,
-            SHADERC_SHARED_LIB,
+            SHADERC_SHARED_LIB0,
             consts::DLL_SUFFIX
         );
-        let dylib_path = search_dir.join(dylib_name);
+        let dylib1_name = format!(
+            "{}{}{}",
+            consts::DLL_PREFIX,
+            SHADERC_SHARED_LIB1,
+            consts::DLL_SUFFIX
+        );
+        let dylib0_path = search_dir.join(dylib0_name);
+        let dylib1_path = search_dir.join(dylib1_name);
 
         if let Some((lib_name, lib_kind)) = {
             match (
-                dylib_path.exists(),
+                dylib0_path.exists(),
+                dylib1_path.exists(),
                 static_lib_path.exists(),
                 config_prefer_static_linking,
             ) {
                 // If dylib not exist OR prefer static lib and static lib exist, static.
-                (false, true, _) | (_, true, true) => Some((SHADERC_STATIC_LIB, "static")),
+                (false, false, true, _) | (_, _, true, true) => {
+                    Some((SHADERC_STATIC_LIB, "static"))
+                }
                 // Otherwise, if dylib exist, dynamic.
-                (true, _, _) => Some((SHADERC_SHARED_LIB, "dylib")),
+                (true, _, _, _) => Some((SHADERC_SHARED_LIB0, "dylib")),
+                (_, true, _, _) => Some((SHADERC_SHARED_LIB1, "dylib")),
                 // Neither dylib nor static lib exist.
                 _ => None,
             }
