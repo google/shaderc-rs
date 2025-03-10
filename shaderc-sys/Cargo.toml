@@ -24,4 +24,4 @@ link-cplusplus = "1.0"
 
 [build-dependencies]
 cmake = "^0.1.37"
-roxmltree = "0.14.1"
+roxmltree = "0.20"
