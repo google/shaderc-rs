@@ -21,7 +21,7 @@ First add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-shaderc = "0.8"
+shaderc = "0.9"
 ```
 
 Then add to your crate root:
