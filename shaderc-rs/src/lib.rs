@@ -1168,7 +1168,7 @@ impl<'a> CompileOptions<'a> {
     }
 }
 
-impl<'a> Drop for CompileOptions<'a> {
+impl Drop for CompileOptions<'_> {
     fn drop(&mut self) {
         unsafe { scs::shaderc_compile_options_release(self.raw) }
     }
