@@ -780,7 +780,8 @@ impl<'a> CompileOptions<'a> {
     /// `version` will be used for distinguishing between different versions
     /// of the target environment.
     /// For example:
-    /// ```ignore
+    /// ```
+    /// let mut options = shaderc::CompileOptions::new().unwrap();
     /// options.set_target_env(shaderc::TargetEnv::Vulkan, shaderc::EnvVersion::Vulkan1_1 as u32);
     /// ```
     pub fn set_target_env(&mut self, env: TargetEnv, version: u32) {
