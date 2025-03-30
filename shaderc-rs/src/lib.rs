@@ -1152,7 +1152,7 @@ impl<'a> CompileOptions<'a> {
     }
 }
 
-impl<'a> Clone for CompileOptions<'a> {
+impl Clone for CompileOptions<'_> {
     fn clone(&self) -> Self {
         let p = unsafe { scs::shaderc_compile_options_clone(self.raw) };
 
