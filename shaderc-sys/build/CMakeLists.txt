@@ -3,7 +3,7 @@
 # of using the directory hierarchy required by shaderc, which Git submodule
 # does not like.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.14)
 
 project(native-shaderc)
 
