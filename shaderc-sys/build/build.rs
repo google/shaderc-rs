@@ -57,7 +57,7 @@ fn get_apple_sdk_path() -> Option<PathBuf> {
     Some(PathBuf::from(prefix_str.trim_end().to_string()))
 }
 
-fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String) -> PathBuf {
+fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: &str) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
@@ -126,6 +126,34 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     };
 
     config.build()
+}
+
+fn build_from_source(target_os: &str, target_env: &str) {
+    let mut finder = cmd_finder::CommandFinder::new();
+
+    finder.must_have("cmake");
+    finder.must_have("git");
+    finder
+        .maybe_have("python3")
+        .or(finder.maybe_have("python"))
+        .unwrap_or_else(|| {
+            panic!("Build requires one of `python3` or `python`");
+        });
+
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let shaderc_dir = Path::new(&manifest_dir).join("build");
+
+    let mut lib_path = if target_env == "msvc" {
+        finder.must_have("ninja");
+        build_shaderc_msvc(&shaderc_dir)
+    } else {
+        let has_ninja = finder.maybe_have("ninja").is_some();
+        build_shaderc_unix(&shaderc_dir, has_ninja, target_os)
+    };
+
+    lib_path.push("lib");
+    println!("cargo:rustc-link-search=native={}", lib_path.display());
+    println!("cargo:rustc-link-lib=static={SHADERC_STATIC_LIB}");
 }
 
 fn check_vulkan_sdk_version(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -253,6 +281,13 @@ fn main() {
     let config_prefer_static_linking = env::var("CARGO_FEATURE_PREFER_STATIC_LINKING").is_ok();
     let has_explicit_set_search_dir = env::var("SHADERC_LIB_DIR").is_ok();
 
+    // Build from source if explicitly requested.
+    if config_build_from_source {
+        println!("cargo:warning=shaderc: requested to build from source");
+        build_from_source(&target_os, &target_env);
+        return;
+    }
+
     // Canonicalize the search directory first.
     let search_dir = get_search_dir(&target_os, config_build_from_source).and_then(|search_dir| {
         let path = Path::new(&search_dir);
@@ -361,38 +396,10 @@ fn main() {
         }
     }
 
-    if config_build_from_source {
-        println!("cargo:warning=shaderc: requested to build from source");
-    } else {
-        println!(
-            "cargo:warning=shaderc: cannot find native shaderc library on system; \
-             falling back to build from source"
-        );
-    }
+    println!(
+        "cargo:warning=shaderc: cannot find native shaderc library on system; \
+            falling back to build from source"
+    );
 
-    let mut finder = cmd_finder::CommandFinder::new();
-
-    finder.must_have("cmake");
-    finder.must_have("git");
-    finder
-        .maybe_have("python3")
-        .or(finder.maybe_have("python"))
-        .unwrap_or_else(|| {
-            panic!("Build requires one of `python3` or `python`");
-        });
-
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let shaderc_dir = Path::new(&manifest_dir).join("build");
-
-    let mut lib_path = if target_env == "msvc" {
-        finder.must_have("ninja");
-        build_shaderc_msvc(&shaderc_dir)
-    } else {
-        let has_ninja = finder.maybe_have("ninja").is_some();
-        build_shaderc_unix(&shaderc_dir, has_ninja, target_os)
-    };
-
-    lib_path.push("lib");
-    println!("cargo:rustc-link-search=native={}", lib_path.display());
-    println!("cargo:rustc-link-lib=static={SHADERC_STATIC_LIB}");
+    build_from_source(&target_os, &target_env);
 }
