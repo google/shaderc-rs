@@ -57,7 +57,7 @@ fn get_apple_sdk_path() -> Option<PathBuf> {
     Some(PathBuf::from(prefix_str.trim_end().to_string()))
 }
 
-fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: String) -> PathBuf {
+fn build_shaderc_unix(shaderc_dir: &PathBuf, use_ninja: bool, target_os: &str) -> PathBuf {
     let mut config = cmake::Config::new(shaderc_dir);
     config
         .profile("Release")
@@ -128,6 +128,34 @@ fn build_shaderc_msvc(shaderc_dir: &PathBuf) -> PathBuf {
     config.build()
 }
 
+fn build_from_source(target_os: &str, target_env: &str) {
+    let mut finder = cmd_finder::CommandFinder::new();
+
+    finder.must_have("cmake");
+    finder.must_have("git");
+    finder
+        .maybe_have("python3")
+        .or(finder.maybe_have("python"))
+        .unwrap_or_else(|| {
+            panic!("Build requires one of `python3` or `python`");
+        });
+
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let shaderc_dir = Path::new(&manifest_dir).join("build");
+
+    let mut lib_path = if target_env == "msvc" {
+        finder.must_have("ninja");
+        build_shaderc_msvc(&shaderc_dir)
+    } else {
+        let has_ninja = finder.maybe_have("ninja").is_some();
+        build_shaderc_unix(&shaderc_dir, has_ninja, target_os)
+    };
+
+    lib_path.push("lib");
+    println!("cargo:rustc-link-search=native={}", lib_path.display());
+    println!("cargo:rustc-link-lib=static={SHADERC_STATIC_LIB}");
+}
+
 fn check_vulkan_sdk_version(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let xml = std::fs::read_to_string(
         path.join("share")
@@ -172,6 +200,67 @@ fn host_target() -> String {
         .to_owned()
 }
 
+fn get_search_dir(target_os: &str, build_from_source: bool) -> Option<String> {
+    // Use explicit shaderc search directory if set.
+    if let Ok(lib_dir) = env::var("SHADERC_LIB_DIR") {
+        println!("cargo:warning=shaderc: searching native shaderc libraries in '{lib_dir}'");
+        return Some(lib_dir);
+    }
+
+    // Try to find native shaderc library from Vulkan SDK if possible.
+    if let Ok(sdk_dir) = env::var("VULKAN_SDK") {
+        check_vulkan_sdk_version(Path::new(&sdk_dir)).unwrap();
+        println!("cargo:warning=shaderc: searching native shaderc libraries in Vulkan SDK '{sdk_dir}/lib'");
+        return Some(format!("{sdk_dir}/lib/"));
+    }
+
+    if let Ok(pkg_lib) = pkg_config::Config::new().probe(SHADERC_SHARED_LIB0) {
+        let pkg_dir = pkg_lib.link_paths[0].as_path().to_string_lossy();
+        println!("cargo:warning=shaderc: searching native shaderc libraries in '{pkg_dir}' from pkg-config");
+        return Some(pkg_dir.to_string());
+    }
+
+    // If no explicit path is set and no explicit request is made to build from
+    // source, check known system locations before falling back to build from source.
+    if !build_from_source {
+        println!(
+            "cargo:warning=shaderc: searching for native shaderc libraries on system;  \
+             use '--features build-from-source' to force building from source code"
+        );
+
+        if target_os == "macos" {
+            // Vulkan SDK is installed in `/usr/local/` by default on macOS
+            let macos_path = "/usr/local/lib/";
+            if Path::new(macos_path).exists() {
+                return Some(macos_path.to_owned());
+            }
+        } else if target_os == "linux" {
+            // https://wiki.ubuntu.com/MultiarchSpec
+            // https://wiki.debian.org/Multiarch/Implementation
+            let debian_arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap() {
+                arch if arch == "x86" => "i386".to_owned(),
+                arch => arch,
+            };
+            let debian_triple_path = format!("/usr/lib/{debian_arch}-linux-gnu/");
+
+            return if Path::new(&debian_triple_path).exists() {
+                // Debian, Ubuntu and their derivatives.
+                Some(debian_triple_path)
+            } else if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86_64"
+                && Path::new("/usr/lib64/").exists()
+            {
+                // Other distributions running on x86_64 usually use this path.
+                Some("/usr/lib64/".to_owned())
+            } else {
+                // Other distributions, not x86_64.
+                Some("/usr/lib/".to_owned())
+            };
+        }
+    }
+
+    None
+}
+
 fn main() {
     // Don't attempt to build shaderc native library on docs.rs when cross-compiling.
     if env::var("DOCS_RS").is_ok() {
@@ -192,76 +281,15 @@ fn main() {
     let config_prefer_static_linking = env::var("CARGO_FEATURE_PREFER_STATIC_LINKING").is_ok();
     let has_explicit_set_search_dir = env::var("SHADERC_LIB_DIR").is_ok();
 
-    // Initialize explicit shaderc search directory first.
-    let mut search_dir = if let Ok(lib_dir) = env::var("SHADERC_LIB_DIR") {
-        println!("cargo:warning=shaderc: searching native shaderc libraries in '{lib_dir}'");
-        Some(lib_dir)
-    } else {
-        None
-    };
-
-    // Try to find native shaderc library from Vulkan SDK if possible.
-    if search_dir.is_none() {
-        search_dir = if let Ok(sdk_dir) = env::var("VULKAN_SDK") {
-            check_vulkan_sdk_version(Path::new(&sdk_dir)).unwrap();
-            println!("cargo:warning=shaderc: searching native shaderc libraries in Vulkan SDK '{sdk_dir}/lib'");
-            Some(format!("{sdk_dir}/lib/"))
-        } else {
-            None
-        };
-    }
-
-    if search_dir.is_none() {
-        search_dir = if let Ok(pkg_lib) = pkg_config::Config::new().probe(SHADERC_SHARED_LIB0) {
-            let pkg_dir = pkg_lib.link_paths[0].as_path().to_string_lossy();
-            println!("cargo:warning=shaderc: searching native shaderc libraries in '{pkg_dir}' from pkg-config");
-            Some(pkg_dir.to_string())
-        } else {
-            None
-        };
-    }
-
-    // If no explicit path is set and no explicit request is made to build from
-    // source, check known system locations before falling back to build from source.
-    // This set `search_dir` for later usage.
-    if search_dir.is_none() && !config_build_from_source {
-        println!(
-            "cargo:warning=shaderc: searching for native shaderc libraries on system;  \
-             use '--features build-from-source' to force building from source code"
-        );
-
-        if target_os == "macos" {
-            // Vulkan SDK is installed in `/usr/local/` by default on macOS
-            let macos_path = "/usr/local/lib/";
-            if Path::new(macos_path).exists() {
-                search_dir = Some(macos_path.to_owned());
-            }
-        } else if target_os == "linux" {
-            // https://wiki.ubuntu.com/MultiarchSpec
-            // https://wiki.debian.org/Multiarch/Implementation
-            let debian_arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap() {
-                arch if arch == "x86" => "i386".to_owned(),
-                arch => arch,
-            };
-            let debian_triple_path = format!("/usr/lib/{debian_arch}-linux-gnu/");
-
-            search_dir = if Path::new(&debian_triple_path).exists() {
-                // Debian, Ubuntu and their derivatives.
-                Some(debian_triple_path)
-            } else if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86_64"
-                && Path::new("/usr/lib64/").exists()
-            {
-                // Other distributions running on x86_64 usually use this path.
-                Some("/usr/lib64/".to_owned())
-            } else {
-                // Other distributions, not x86_64.
-                Some("/usr/lib/".to_owned())
-            };
-        }
+    // Build from source if explicitly requested.
+    if config_build_from_source {
+        println!("cargo:warning=shaderc: requested to build from source");
+        build_from_source(&target_os, &target_env);
+        return;
     }
 
     // Canonicalize the search directory first.
-    let search_dir = if let Some(search_dir) = search_dir {
+    let search_dir = get_search_dir(&target_os, config_build_from_source).and_then(|search_dir| {
         let path = Path::new(&search_dir);
         let cannonical = fs::canonicalize(path);
         if path.is_relative() {
@@ -282,9 +310,7 @@ fn main() {
         } else {
             cannonical.ok()
         }
-    } else {
-        None
-    };
+    });
 
     // Try to build with the dynamic or static library if a path was explicit set
     // or implicitly chosen.
@@ -370,38 +396,10 @@ fn main() {
         }
     }
 
-    if config_build_from_source {
-        println!("cargo:warning=shaderc: requested to build from source");
-    } else {
-        println!(
-            "cargo:warning=shaderc: cannot find native shaderc library on system; \
-             falling back to build from source"
-        );
-    }
+    println!(
+        "cargo:warning=shaderc: cannot find native shaderc library on system; \
+            falling back to build from source"
+    );
 
-    let mut finder = cmd_finder::CommandFinder::new();
-
-    finder.must_have("cmake");
-    finder.must_have("git");
-    finder
-        .maybe_have("python3")
-        .or(finder.maybe_have("python"))
-        .unwrap_or_else(|| {
-            panic!("Build requires one of `python3` or `python`");
-        });
-
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let shaderc_dir = Path::new(&manifest_dir).join("build");
-
-    let mut lib_path = if target_env == "msvc" {
-        finder.must_have("ninja");
-        build_shaderc_msvc(&shaderc_dir)
-    } else {
-        let has_ninja = finder.maybe_have("ninja").is_some();
-        build_shaderc_unix(&shaderc_dir, has_ninja, target_os)
-    };
-
-    lib_path.push("lib");
-    println!("cargo:rustc-link-search=native={}", lib_path.display());
-    println!("cargo:rustc-link-lib=static={SHADERC_STATIC_LIB}");
+    build_from_source(&target_os, &target_env);
 }
