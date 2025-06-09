@@ -317,7 +317,7 @@ fn main() {
     if let Some(search_dir) = search_dir {
         let search_dir_str = search_dir.to_string_lossy();
 
-        let static_lib_path = search_dir.join(if target_os == "windows" {
+        let static_lib_path = search_dir.join(if target_os == "windows" && target_env == "msvc" {
             SHADERC_STATIC_LIB_FILE_WIN
         } else {
             SHADERC_STATIC_LIB_FILE_UNIX
@@ -365,13 +365,13 @@ fn main() {
                 ("windows", "msvc") => {
                     println!("cargo:warning=shaderc: Windows MSVC static build is experimental");
                     println!("cargo:rustc-link-search=native={search_dir_str}");
-                    println!("cargo:rustc-link-lib={lib_kind}:+verbatim={lib_name}.lib");
+                    println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
                     return;
                 }
                 ("windows", "gnu") => {
                     println!("cargo:warning=shaderc: Windows MinGW static build is experimental");
                     println!("cargo:rustc-link-search=native={search_dir_str}");
-                    println!("cargo:rustc-link-lib={lib_kind}:+verbatim={lib_name}.lib");
+                    println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
                     return;
                 }
                 ("macos", _) => {
