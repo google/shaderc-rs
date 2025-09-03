@@ -357,7 +357,7 @@ fn main() {
             }
         } {
             match (target_os.as_str(), target_env.as_str()) {
-                ("linux", _) => {
+                ("linux" | "android", _) => {
                     println!("cargo:rustc-link-search=native={search_dir_str}");
                     println!("cargo:rustc-link-lib={lib_kind}={lib_name}");
                     return;
